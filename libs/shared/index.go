@@ -39,6 +39,7 @@ var RespPageNotFound = middleware.RespPageNotFound
 var RespUnathourized = middleware.RespUnathourized
 var RespValidationFailure = middleware.RespValidationFailure
 var BindErrorStructure = middleware.BindErrorStructure
+var GenerateJWT = middleware.GenerateJWT
 
 // ========== Helper Functions ==========
 

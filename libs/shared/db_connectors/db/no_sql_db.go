@@ -27,15 +27,19 @@ func GetMongoDb(credentials interface{}) *mongo.Database {
 	}
 
 	MONGO_DB_HOST_AND_PORT := MONGO_DB_HOST
-	if MONGO_DB_PORT != "" {
-		MONGO_DB_HOST_AND_PORT = fmt.Sprintf("%s:%s", MONGO_DB_HOST, MONGO_DB_PORT)
-	} else if MONGO_DB_PORT == "" {
-		MONGO_DB_HOST_AND_PORT = fmt.Sprintf("%s:27017", MONGO_DB_HOST)
+
+	if !MONGO_DB_SRV {
+		if MONGO_DB_PORT != "" {
+			MONGO_DB_HOST_AND_PORT = fmt.Sprintf("%s:%s", MONGO_DB_HOST, MONGO_DB_PORT)
+		} else if MONGO_DB_PORT == "" {
+			MONGO_DB_HOST_AND_PORT = fmt.Sprintf("%s:27017", MONGO_DB_HOST)
+		}
 	}
 
 	var MONGO_DB_SRV_VALUE string
 	if MONGO_DB_SRV {
 		MONGO_DB_SRV_VALUE = "+srv"
+		MONGO_DB_HOST_AND_PORT = MONGO_DB_HOST
 	}
 
 	connectionString := fmt.Sprintf("mongodb%s://%s%s/%s", MONGO_DB_SRV_VALUE, MONGO_DB_USERNAME_AND_PASSWORD, MONGO_DB_HOST_AND_PORT, MONGO_DB_NAME)
