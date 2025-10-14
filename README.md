@@ -30,11 +30,6 @@ Genie is built using a modern monorepo structure with the following components:
 - **Shared Libraries** (`libs/shared`): Common utilities and database connectors
 - **Enums** (`libs/enums`): Shared type definitions and constants
 
-### Generate a new library
-
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
-```
 
 ## Getting Started
 
