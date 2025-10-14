@@ -1,0 +1,65 @@
+package shared
+
+import (
+	db_model "libs/shared/db_connectors/model"
+	db_repo "libs/shared/db_connectors/repository"
+	helpers "libs/shared/utils/helpers"
+	middleware "libs/shared/utils/middleware"
+)
+
+type ApiMetaData struct {
+	RequestId     string                 `json:"request_id"`
+	Host          string                 `json:"host"`
+	Scheme        string                 `json:"scheme"`
+	Token         string                 `json:"token"`
+	UserId        int                    `json:"user_id"`
+	Role          map[string]interface{} `json:"role"`
+	Email         string                 `json:"email"`
+	MobileNumber  string                 `json:"mobile_number"`
+	RequestedPath string                 `json:"requested_path"`
+	UserAgent     string                 `json:"user_agent"`
+	IpOrDomain    string                 `json:"ip_or_domain"`
+	Name          string                 `json:"name"`
+}
+
+// ========== Mongo Repository Functions ==========
+
+type MongoRepositoryFunctions db_repo.MongoRepositoryFunctions
+
+var MongoRepository = db_repo.NewMongoRepo
+var MongoCollectionName = db_model.CollectionName
+
+// ========== Middleware Functions ==========
+
+var ErrorHandler = middleware.ErrorHandler
+var RespSuccess = middleware.RespSuccess
+var RespSuccessWithPagination = middleware.RespSuccessWithPagination
+var RespFailure = middleware.RespFailure
+var RespPageNotFound = middleware.RespPageNotFound
+var RespUnathourized = middleware.RespUnathourized
+var RespValidationFailure = middleware.RespValidationFailure
+var BindErrorStructure = middleware.BindErrorStructure
+var GenerateJWT = middleware.GenerateJWT
+
+// ========== Helper Functions ==========
+
+var PrettyPrint = helpers.PrettyPrint
+var FormatDuration = helpers.FormatDuration
+var NormalPrint = helpers.NormalPrint
+var GetUSDExchangeRate = helpers.GetUSDExchangeRate
+var ParseJsonPathFromObject = helpers.ParseJsonPathFromObject
+var GenerateRandomString = helpers.GenerateRandomString
+var GenerateRandomStringLowerCase = helpers.GenerateRandomStringLowerCase
+var GenerateRandomAlphaNumericString = helpers.GenerateRandomAlphanumeric
+var JsonMarshaller = helpers.JsonMarshaller
+var CallFuncByName = helpers.CallFuncByName
+var GetStructMethods = helpers.GetStructMethods
+var ArraySlice = helpers.ArraySlice
+var Mod = helpers.Mod
+var LogOutput = helpers.LogOutput
+var Contains = helpers.Contains
+var ContainsString = helpers.ContainsString
+var UniqueAppend = helpers.UniqueAppend
+var RemoveUint = helpers.RemoveUint
+var RemoveElementFromArray = helpers.RemoveElementFromArray
+var ContainsInterface = helpers.ContainsInterface
