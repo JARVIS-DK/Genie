@@ -6,9 +6,9 @@ import (
 
 func (h *handler) Route(g *echo.Group) {
 
-	g.POST("/register", h.Register)
-	g.POST("/login", h.Login)
-	g.POST("/generate-access-token", h.GenerateAccessToken)
+	g.POST("/register", h.Register, UserRegisterValidation)
+	g.POST("/login", h.Login, UserLoginValidation)
+	g.POST("/get-access-token", h.GetAccessToken, UserGetAccessTokenValidation)
 	g.POST("/update-password", h.UpdatePassword)
 
 }

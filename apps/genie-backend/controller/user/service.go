@@ -6,10 +6,12 @@ import (
 	"fmt"
 	shared "libs/shared"
 	model "libs/shared/db_connectors/model"
+	helpers "libs/shared/utils/helpers"
 	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Service interface {
@@ -18,6 +20,7 @@ type Service interface {
 	GetUser(metaData shared.ApiMetaData, query map[string]interface{}) (interface{}, error)
 	GenerateAccessToken(metaData shared.ApiMetaData, user model.User) (string, error)
 	GenerateRefreshToken(metaData shared.ApiMetaData, user model.User) (string, error)
+	GetAccessToken(metaData shared.ApiMetaData, refreshToken string) (string, error)
 }
 
 type service struct {
@@ -91,13 +94,11 @@ func (s *service) Login(metaData shared.ApiMetaData, data UserLoginRequestDto, q
 			return nil, errors.New("User is Blocked, Please try again after " + user.BlockedTill.Format("2006-01-02 15:04:05"))
 		}
 	}
-	fmt.Println("user", user.Password)
-	fmt.Println("data", data.Password)
 
-	// err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(data.Password))
-	// if err != nil {
-	// 	return nil, errors.New("Invalid password")
-	// }
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(data.Password))
+	if err != nil {
+		return nil, errors.New("Invalid password")
+	}
 
 	accessToken, err := s.GenerateAccessToken(metaData, user)
 	if err != nil {
@@ -149,6 +150,39 @@ func (s *service) GenerateAccessToken(metaData shared.ApiMetaData, user model.Us
 	}
 	return token, nil
 
+}
+
+func (s *service) GetAccessToken(metaData shared.ApiMetaData, refreshToken string) (string, error) {
+	claims, err := helpers.DecodeTokenAndExtractClaims(refreshToken, env.GlobalEnv["JWT_REFRESH_TOKEN_KEY"].(string))
+	if err != nil {
+		return "", err
+	}
+
+	// Safely extract user ID from claims
+	userID, ok := claims["id"]
+	if !ok {
+		return "", errors.New("invalid token: missing user ID")
+	}
+
+	// Get user data from database
+	collectionName := shared.MongoCollectionName["USERS"]
+	query := map[string]interface{}{"id": userID}
+	userData, err := s.db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], collectionName, query)
+	if err != nil {
+		return "", errors.New("User not found")
+	}
+
+	// Convert to User model
+	user := model.User{}
+	shared.JsonMarshaller(userData, &user)
+
+	// Generate new access token
+	accessToken, err := s.GenerateAccessToken(metaData, user)
+	if err != nil {
+		return "", err
+	}
+
+	return accessToken, nil
 }
 
 func (s *service) GenerateRefreshToken(metaData shared.ApiMetaData, user model.User) (string, error) {
