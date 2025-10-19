@@ -12,11 +12,14 @@
 
 
 # main.py
-from agents.master_agent import MasterAgent
 
-while True:
-    query = input("\nAsk something: ")
-    if query.lower() in ["exit", "quit"]:
-        break
-    response = MasterAgent(query)
-    print("\n🤖:", response)
+from agent import WebSearchAgent
+from google.adk.agents import LlmAgent
+
+root_agent = LlmAgent(
+    model="gemini-2.5-flash",
+    instructions="You are the root agent. You are given a query and you need to orchestrate the other agents to answer the query.",
+    sub_agents=[WebSearchAgent],
+    name="RootAgent",
+    description="You are the root agent. You are given a query and you need to orchestrate the other agents to answer the query."
+)
