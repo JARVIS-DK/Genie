@@ -476,7 +476,9 @@ export const ChatInterface = () => {
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold mb-2 tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  How can I help you today?
+                  {user?.first_name
+                    ? `Hey ${user.first_name}, what can I help you with today?`
+                    : "How can I help you today?"}
                 </h2>
                 <p className="text-muted-foreground max-w-md text-sm">
                   Start a conversation by typing a message below
