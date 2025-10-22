@@ -14,6 +14,10 @@ var db *mongo.Database
 func GetMongoDb(credentials interface{}) *mongo.Database {
 	mongo_credentials := credentials.(map[string]interface{})
 
+	if db != nil {
+		return db
+	}
+
 	MONGO_DB_NAME := mongo_credentials["MONGO_DB_NAME"].(string)
 	MONGO_DB_HOST := mongo_credentials["MONGO_DB_HOST"].(string)
 	MONGO_DB_PORT := mongo_credentials["MONGO_DB_PORT"].(string)

@@ -286,14 +286,14 @@ func GenerateOtp(length int) string {
 	return string(result)
 }
 
-func DecodeTokenAndExtractClaims(tokenString string) (map[string]interface{}, error) {
+func DecodeTokenAndExtractClaims(tokenString string, jwtKey string) (map[string]interface{}, error) {
 	// Remove "Bearer " prefix if it exists
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
 	// Parse the token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Normally you would validate the 'alg' field here
-		return []byte("yNVrBBM+oAOWOEcXPFjJuvXXpUq/4XR1KuSGX/i+slF+oE/geu2uW25PXjfWS9pwjmTry3WXn7q0DH7I+vNSjw=="), nil // Use the same secret key used to sign the token
+		return []byte(jwtKey), nil // Use the same secret key used to sign the token
 	})
 
 	if err != nil {
