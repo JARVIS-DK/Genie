@@ -1,4 +1,4 @@
-import { MessageSquare, Plus, Trash2, History, User } from "lucide-react";
+import { MessageSquare, Plus, Trash2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -116,25 +116,7 @@ export const ChatSidebar = ({
         </div>
       </ScrollArea>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-border/60 bg-card/20">
-        <div className="flex items-center gap-3">
-          {/* User Avatar */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center flex-shrink-0 shadow-sm ring-1 ring-border/40">
-            <User className="h-4 w-4 text-white" />
-          </div>
-          
-          {/* User Info */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">
-              {user?.first_name}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              GenIE Super Agent
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Footer removed as per request */}
     </aside>
   );
 };

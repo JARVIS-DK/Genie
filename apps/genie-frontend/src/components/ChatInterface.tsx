@@ -3,8 +3,15 @@ import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatSidebar, ChatHistory } from "./ChatSidebar";
-import { Bot, BotMessageSquare, Brain, Cpu, Sparkles, PanelLeft, Plus } from "lucide-react";
+import { Bot, Cpu, PanelLeft, Plus, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { FileAttachment } from "@/services/api";
 import { apiRequest, logout } from "@/services/api_request";
 import { useNavigate, useParams } from "react-router-dom";
@@ -384,18 +391,35 @@ export const ChatInterface = () => {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              logout();
-              dispatch(clearUser());
-              navigate("/login");
-            }}
-            className="border-border hover:bg-muted/50"
-          >
-            Logout
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-full hover:bg-muted/60 border border-border/60"
+              >
+                <User className="h-4 w-4" />
+                <span className="sr-only">Open profile menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={() => {}}>
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  logout();
+                  dispatch(clearUser());
+                  navigate("/login");
+                }}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
