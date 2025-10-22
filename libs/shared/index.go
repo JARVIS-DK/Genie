@@ -8,18 +8,16 @@ import (
 )
 
 type ApiMetaData struct {
-	RequestId     string                 `json:"request_id"`
-	Host          string                 `json:"host"`
-	Scheme        string                 `json:"scheme"`
-	Token         string                 `json:"token"`
-	UserId        int                    `json:"user_id"`
-	Role          map[string]interface{} `json:"role"`
-	Email         string                 `json:"email"`
-	MobileNumber  string                 `json:"mobile_number"`
-	RequestedPath string                 `json:"requested_path"`
-	UserAgent     string                 `json:"user_agent"`
-	IpOrDomain    string                 `json:"ip_or_domain"`
-	Name          string                 `json:"name"`
+	RequestId     string `json:"request_id"`
+	Host          string `json:"host"`
+	Scheme        string `json:"scheme"`
+	Token         string `json:"token"`
+	UserId        int    `json:"user_id"`
+	Email         string `json:"email"`
+	MobileNumber  string `json:"mobile_number"`
+	RequestedPath string `json:"requested_path"`
+	UserAgent     string `json:"user_agent"`
+	Name          string `json:"name"`
 }
 
 // ========== Mongo Repository Functions ==========
@@ -40,6 +38,7 @@ var RespUnathourized = middleware.RespUnathourized
 var RespValidationFailure = middleware.RespValidationFailure
 var BindErrorStructure = middleware.BindErrorStructure
 var GenerateJWT = middleware.GenerateJWT
+var AuthorizationCheck = middleware.AuthorizationCheck
 
 // ========== Helper Functions ==========
 

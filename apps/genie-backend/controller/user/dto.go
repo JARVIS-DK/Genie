@@ -14,6 +14,5 @@ type UserLoginRequestDto struct {
 }
 
 type UserGetAccessTokenRequestDto struct {
-	Id           string `json:"id" bson:"id" validate:"required"`
 	RefreshToken string `json:"refresh_token" bson:"refresh_token" validate:"required"`
 }

@@ -47,8 +47,14 @@ func (s *service) Register(data UserRegisterRequestDto, metaData shared.ApiMetaD
 	var user model.User
 	shared.JsonMarshaller(data, &user)
 
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Password = string(hashedPassword)
 	user.Email = strings.ToLower(user.Email)
-	user.IsPasswordAvailable = false
+	user.IsPasswordAvailable = true
 	user.IsUserBlocked = false
 	user.BlockedTill = time.Time{}
 	user.SubscriptionType = "Free"
@@ -97,6 +103,7 @@ func (s *service) Login(metaData shared.ApiMetaData, data UserLoginRequestDto, q
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(data.Password))
 	if err != nil {
+		fmt.Println("error in comparing password", err)
 		return nil, errors.New("Invalid password")
 	}
 
@@ -140,6 +147,7 @@ func (s *service) GenerateAccessToken(metaData shared.ApiMetaData, user model.Us
 	jwtKey := env.GlobalEnv["JWT_ACCESS_TOKEN_KEY"]
 	durationStr := env.GlobalEnv["JWT_ACCESS_TOKEN_DURATION"]
 	expirationTime, err := time.ParseDuration(durationStr.(string))
+
 	if err != nil {
 		return "", err
 	}
@@ -195,6 +203,7 @@ func (s *service) GenerateRefreshToken(metaData shared.ApiMetaData, user model.U
 
 	jwtKey := env.GlobalEnv["JWT_REFRESH_TOKEN_KEY"]
 	durationStr := env.GlobalEnv["JWT_REFRESH_TOKEN_DURATION"]
+
 	expirationTime, err := time.ParseDuration(durationStr.(string))
 	if err != nil {
 		return "", err

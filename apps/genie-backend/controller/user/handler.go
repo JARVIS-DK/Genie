@@ -88,7 +88,9 @@ func (h *handler) Login(c echo.Context) error {
 	}
 
 	metaData := shared.ApiMetaData{}
-	shared.JsonMarshaller(c.Get("meta_data"), &metaData)
+	shared.PrettyPrint("metaData", c.Get("metaData"))
+	shared.PrettyPrint("meta_data", c.Get("meta_data"))
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
 
 	var data UserLoginRequestDto
 	err := c.Bind(&data)
@@ -113,22 +115,14 @@ func (h *handler) GetAccessToken(c echo.Context) error {
 		return shared.RespFailure(c, "Origin is required in headers", nil)
 	}
 	metaData := shared.ApiMetaData{}
-	shared.JsonMarshaller(c.Get("meta_data"), &metaData)
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
+
 	var data UserGetAccessTokenRequestDto
 	err := c.Bind(&data)
 	if err != nil {
 		return shared.RespFailure(c, "Invalid request body", err.Error())
 	}
 
-	userId := data.Id
-	userId_filterQuery := map[string]interface{}{
-		"id": userId,
-	}
-
-	userData, _ := h.service.GetUser(metaData, userId_filterQuery)
-	if userData == nil {
-		return shared.RespFailure(c, "User not found", nil)
-	}
 	serviceResponse, err := h.service.GetAccessToken(metaData, data.RefreshToken)
 	if err != nil {
 		return shared.RespFailure(c, "Internal Server Error", err.Error())
