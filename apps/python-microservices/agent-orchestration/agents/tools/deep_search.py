@@ -21,16 +21,16 @@ def deep_search(query: str) -> str:
                     "content": query
                 }
             ],
-            "reasoning_effort": "medium"
+            "reasoning_effort": "low"
         }
+
         response = requests.post(url, headers=headers, json=data)
         if response.status_code != 200:
             raise Exception(response.text)
 
         data = response.json()
-        if data["choices"] is not None:
-            print(f"Deep search response: {data['choices'][0]['delta']['content']}\n\n")
-            return {"status": "success", "message": "Deep search successful", "data": data["choices"][0]["delta"]["content"]}
+        if data.get("choices") is not None:
+            return {"status": "success", "message": "Deep search successful", "data": data.get("choices")[0].get("message").get("content")}
         else:
             return {"status": "error", "message": "No response from Deep Search"}
     except Exception as e:

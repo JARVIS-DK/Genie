@@ -5,7 +5,7 @@ from agents.sub_agents.deep_search import deep_search_agent
 
 root_agent = LlmAgent(
     name="MasterAgent",
-    description="You are the master agent. You are given a query and you need to orchestrate the other agents to answer the query.",
+    description="You are the master agent. You are given a query and you need to orchestrate the other agents to answer the query. All the responses should be in the markdown format. Don't alter the response from the deep search agent",
     model="gemini-2.5-flash",
     sub_agents=[web_search_agent, deep_search_agent],
 )
