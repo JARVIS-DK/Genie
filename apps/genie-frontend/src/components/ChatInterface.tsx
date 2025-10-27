@@ -2,61 +2,57 @@ import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { TypingIndicator } from "./TypingIndicator";
-import { ChatSidebar, ChatHistory } from "./ChatSidebar";
-import { Bot, Cpu, PanelLeft, Plus, User, Settings, LogOut } from "lucide-react";
+import { Bot, Sparkles, PanelLeft, Plus, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { FileAttachment } from "@/services/api";
-import { apiRequest, logout } from "@/services/api_request";
-import { useNavigate, useParams } from "react-router-dom";
-import { useAppSelector, useAppDispatch } from "@/store";
-import { clearUser } from "@/store/authSlice";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface Message {
+export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   isStreaming?: boolean;
   files?: FileAttachment[];
+  agentResults?: AgentExecutedResult[];
+  createdAtMs?: number;
 }
 
-interface Chat {
-  id: string;
+export interface AgentExecutedResult {
+  agent_id: number;
+  agent_name: string;
+  agent_status: boolean;
+  agent_type?: string;
+  completed_at?: string;
+  started_at?: string;
+  response_message?: string[];
+  response_error?: string | null;
+  query?: string;
+}
+
+type ChatInterfaceProps = {
   messages: Message[];
-  conversationId: string;
-}
+  isTyping: boolean;
+  isSidebarOpen: boolean;
+  onToggleSidebar: () => void;
+  onNewChat: () => void;
+  onSendMessage: (content: string, files?: FileAttachment[]) => void;
+};
 
-export const ChatInterface = () => {
-  const genConversationId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  const [chats, setChats] = useState<Chat[]>([{ id: "1", messages: [], conversationId: genConversationId() }]);
-  const [currentChatId, setCurrentChatId] = useState("1");
-  const [isTyping, setIsTyping] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [conversations, setConversations] = useState<Array<{
-    _id: number;
-    conversation_id: string;
-    conversation_name: string;
-    created_at: string;
-    id: number;
-    updated_at: string;
-    user_id: number;
-  }>>([]);
-  const hasRestoredConversationRef = useRef(false);
+export const ChatInterface = ({
+  messages,
+  isTyping,
+  isSidebarOpen,
+  onToggleSidebar,
+  onNewChat,
+  onSendMessage,
+}: ChatInterfaceProps) => {
+  const [agentDialogOpen, setAgentDialogOpen] = useState(false);
+  const [agentDialogResults, setAgentDialogResults] = useState<AgentExecutedResult[] | null>(null);
+  const [activeAgentTab, setActiveAgentTab] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const { conversationId: routeConversationId } = useParams<{ conversationId?: string }>();
-  const dispatch = useAppDispatch();
-  const user = useAppSelector((s) => s.auth.user);
-
-  const currentChat = chats.find((c) => c.id === currentChatId);
-  const messages = currentChat?.messages || [];
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     const container = scrollContainerRef.current;
@@ -90,359 +86,42 @@ export const ChatInterface = () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [currentChatId, messages.length]);
+  }, [messages.length]);
 
-  useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        const resp = await apiRequest<{
-          meta: { status: boolean; message: string };
-          data: Array<{
-            _id: number;
-            conversation_id: string;
-            conversation_name: string;
-            created_at: string;
-            id: number;
-            updated_at: string;
-            user_id: number;
-          }>;
-        }>({
-          url: "/chat/get-conversations",
-          method: "GET",
-          isAuth: true,
-        });
-        setConversations(resp?.data ?? []);
-      } catch (e) {
-        console.error("Failed to fetch conversations", e);
-      }
-    };
-    fetchConversations();
-  }, []);
-
-  // Route-driven loading: whenever URL changes to a conversation id, load it
-  useEffect(() => {
-    if (routeConversationId && routeConversationId !== 'new') {
-      try { localStorage.setItem('last_conversation_id', routeConversationId); } catch {}
-      void loadChatHistory(routeConversationId);
-    }
-  }, [routeConversationId]);
-
-  // Initial restore when there is no conversation id in URL
-  useEffect(() => {
-    if (hasRestoredConversationRef.current) return;
-    if (routeConversationId && routeConversationId !== 'new') return; // handled by route effect
-    if (!conversations || conversations.length === 0) return;
-    const lastId = localStorage.getItem('last_conversation_id');
-    if (lastId && conversations.some((c) => c.conversation_id === lastId)) {
-      hasRestoredConversationRef.current = true;
-      void loadChatHistory(lastId);
-    } else {
-      hasRestoredConversationRef.current = true;
-    }
-  }, [conversations, routeConversationId]);
-
-  // Load chat history for a given conversation_id and update/create a local chat bound to it
-  const loadChatHistory = async (conversationId: string) => {
-    try {
-      const resp = await apiRequest<{
-        meta: { status: boolean; message: string };
-        data: {
-          _id: number;
-          available_dates: string[];
-          conversation_id: string;
-          conversation_name: string;
-          created_at: string;
-          history: Record<string, Array<{
-            created_at: string;
-            files: Array<{ id: string; name: string; path: string; size: number; type: string }> | null;
-            role: 'user' | 'assistant';
-            message: string;
-            updated_at: string;
-          }>>;
-          id: number;
-          updated_at: string;
-          user_id: number;
-        };
-      }>({
-        url: `/chat/get-chat-history/${conversationId}`,
-        method: 'GET',
-        isAuth: true,
-      });
-
-      const hist = resp?.data?.history || {};
-      const flattened = Object.values(hist).flatMap((entries) => entries.map((e) => ({
-        createdAtMs: new Date(e.created_at).getTime(),
-        role: e.role === 'user' ? 'user' as const : 'assistant' as const,
-        content: e.message,
-        files: e.files || undefined,
-      })));
-      // Sort by created_at ascending
-      flattened.sort((a, b) => a.createdAtMs - b.createdAtMs);
-      const items: Message[] = flattened.map((e, idx) => ({
-        id: `${e.createdAtMs}-${idx}`,
-        role: e.role,
-        content: e.content,
-        isStreaming: false,
-        files: e.files,
-      }));
-
-      let nextCurrentId: string | null = null;
-      setChats((prev) => {
-        const existing = prev.find((c) => c.conversationId === conversationId);
-        if (existing) {
-          nextCurrentId = existing.id;
-          return prev.map((c) => (c.conversationId === conversationId ? { ...c, messages: items } : c));
-        }
-        const newChat = { id: Date.now().toString(), messages: items, conversationId };
-        nextCurrentId = newChat.id;
-        return [...prev, newChat];
-      });
-      if (nextCurrentId) {
-        setCurrentChatId(nextCurrentId);
-        // Ensure scroll after render updates with loaded history
-        try {
-          requestAnimationFrame(() => scrollToBottom());
-        } catch {
-          setTimeout(() => scrollToBottom(), 0);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load chat history', e);
-    }
+  const openAgentDialog = (results: AgentExecutedResult[], activeAgentName?: string) => {
+    setAgentDialogResults(results);
+    setActiveAgentTab(activeAgentName ?? (results?.[0]?.agent_name ?? null));
+    setAgentDialogOpen(true);
   };
-
-  const sendApiRequest = async (userMessage: string, files?: FileAttachment[]) => {
-    setIsTyping(true);
-
-    try {
-      const chat = chats.find((c) => c.id === currentChatId);
-      if (!chat) throw new Error("Chat not found");
-      try { localStorage.setItem('last_conversation_id', chat.conversationId); } catch {}
-
-      const response = await apiRequest<{
-        meta: { status: boolean; message: string };
-        data: { message: string };
-      }>({
-        url: "/chat/execute",
-        method: "POST",
-        isAuth: true,
-        payload: {
-          query: userMessage,
-          conversation_id: chat.conversationId,
-          files: files || [],
-        },
-      });
-
-      const messageContent = response?.data?.message || "I received your message but couldn't process it properly.";
-      
-      const assistantMessage: Message = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: messageContent,
-        isStreaming: false,
-      };
-
-      setChats((prev) =>
-        prev.map((chat) =>
-          chat.id === currentChatId
-            ? { ...chat, messages: [...chat.messages, assistantMessage] }
-            : chat
-        )
-      );
-
-      // If this was initiated from /chat/new, switch URL to this conversation and update history list
-      if (routeConversationId === 'new') {
-        try { localStorage.setItem('last_conversation_id', chat.conversationId); } catch {}
-        // Ensure the conversation appears in the sidebar list if missing
-        setConversations((prev) => {
-          const exists = prev.some((c) => c.conversation_id === chat.conversationId);
-          if (exists) return prev;
-          const nowIso = new Date().toISOString();
-          const newEntry = {
-            _id: Date.now(),
-            id: Date.now(),
-            conversation_id: chat.conversationId,
-            conversation_name: 'Untitled Conversation',
-            created_at: nowIso,
-            updated_at: nowIso,
-            user_id: 0,
-          };
-          return [...prev, newEntry];
-        });
-        navigate(`/chat/${chat.conversationId}`, { replace: true });
-      }
-    } catch (error) {
-      console.error('API request failed:', error);
-      
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: "Sorry, I encountered an error while processing your request. Please try again.",
-        isStreaming: false,
-      };
-
-      setChats((prev) =>
-        prev.map((chat) =>
-          chat.id === currentChatId
-            ? { ...chat, messages: [...chat.messages, errorMessage] }
-            : chat
-        )
-      );
-    } finally {
-      setIsTyping(false);
-    }
-  };
-
-  const handleSendMessage = (content: string, files?: FileAttachment[]) => {
-    // Debug: Log files being sent
-    if (files && files.length > 0) {
-      console.log('Files being sent from ChatInterface:', files.map(f => ({
-        name: f.name,
-        path: f.path,
-        type: f.type,
-        size: f.size
-      })));
-    }
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content,
-      files: files || [],
-    };
-
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === currentChatId
-          ? { ...chat, messages: [...chat.messages, userMessage] }
-          : chat
-      )
-    );
-    sendApiRequest(content, files);
-  };
-
-  const handleNewChat = () => {
-    const newChatId = Date.now().toString();
-    const newConversationId = genConversationId();
-    setChats((prev) => [...prev, { id: newChatId, messages: [], conversationId: newConversationId }]);
-    setCurrentChatId(newChatId);
-    try { localStorage.setItem('last_conversation_id', newConversationId); } catch {}
-    navigate('/chat/new');
-  };
-
-  const handleSelectChat = (conversationId: string) => {
-    // Load history from server and switch to that conversation
-    try { localStorage.setItem('last_conversation_id', conversationId); } catch {}
-    navigate(`/chat/${conversationId}`);
-  };
-
-  const handleDeleteChat = (conversationId: string) => {
-    // Remove local chat bound to this conversation
-    setChats((prev) => {
-      const filtered = prev.filter((c) => c.conversationId !== conversationId);
-      if (filtered.length === 0) {
-        return [{ id: Date.now().toString(), messages: [], conversationId: genConversationId() }];
-      }
-      return filtered;
-    });
-    // Optimistically remove from fetched conversations list
-    setConversations((prev) => prev.filter((c) => c.conversation_id !== conversationId));
-    // If current chat belonged to this conversation, switch to another
-    const current = chats.find((c) => c.id === currentChatId);
-    if (current?.conversationId === conversationId) {
-      const remaining = chats.filter((c) => c.conversationId !== conversationId);
-      setCurrentChatId(remaining[0]?.id || Date.now().toString());
-      const nextConvId = remaining[0]?.conversationId;
-      if (nextConvId) {
-        try { localStorage.setItem('last_conversation_id', nextConvId); } catch {}
-      } else {
-        try { localStorage.removeItem('last_conversation_id'); } catch {}
-      }
-    }
-    try {
-      const last = localStorage.getItem('last_conversation_id');
-      if (last === conversationId) localStorage.removeItem('last_conversation_id');
-    } catch {}
-  };
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  const chatHistory: ChatHistory[] = conversations
-    .map((c) => ({
-      id: c.conversation_id,
-      title: c.conversation_name || "Untitled Conversation",
-      timestamp: new Date(c.created_at),
-      preview: "",
-    }))
-    .reverse();
 
   return (
-    <div className="relative flex flex-col h-screen w-full overflow-hidden bg-gradient-to-b from-background via-muted/30 to-background">
-      {/* Header */}
-      <header className="sticky top-0 z-20 flex items-center justify-between px-5 py-3 border-b border-border/60 bg-card/60 backdrop-blur-md flex-shrink-0 shadow-sm">
+    <div className="flex flex-col h-screen w-full overflow-hidden">
+      {/* Header (chat window) */}
+      <header className="flex items-center justify-between p-4 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Bot className="h-7 w-7 text-primary" />
+            {isSidebarOpen ? (
+              <Bot className="h-7 w-7 text-primary" />
+            ) : (
+              <img src="/logo.png" alt="GenIE" className="h-7 w-7 object-contain" />
+            )}
           </div>
-          <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className="text-xl font-bold text-white">
             GenIE Super Agent
           </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-full hover:bg-muted/60 border border-border/60"
-              >
-                <User className="h-4 w-4" />
-                <span className="sr-only">Open profile menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => {}}>
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  logout();
-                  dispatch(clearUser());
-                  navigate("/login");
-                }}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </header>
 
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
-        <ChatSidebar
-          chatHistory={chatHistory}
-          currentChatId={currentChat?.conversationId || null}
-          onSelectChat={handleSelectChat}
-          onNewChat={handleNewChat}
-          onDeleteChat={handleDeleteChat}
-          isOpen={isSidebarOpen}
-          onClose={toggleSidebar}
-        />
-
         <div className="flex flex-col flex-1 relative overflow-hidden">
           {/* Sidebar Toggle Button */}
           <div className="absolute top-5 left-4 z-10">
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleSidebar}
-              className="h-8 w-8 hover:bg-muted/60 bg-background/70 backdrop-blur-md border border-border/70 shadow-sm"
+              onClick={onToggleSidebar}
+              className="h-8 w-8 hover:bg-muted/50 bg-background/80 backdrop-blur-sm border border-border shadow-sm"
             >
               <PanelLeft className="h-4 w-4" />
             </Button>
@@ -454,58 +133,150 @@ export const ChatInterface = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handleNewChat}
-                className="h-8 w-8 hover:bg-muted/60 bg-background/70 backdrop-blur-md border border-border/70 shadow-sm"
+                onClick={onNewChat}
+                className="h-8 w-8 hover:bg-muted/50 bg-background/80 backdrop-blur-sm border border-border shadow-sm"
               >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
           )}
 
-        {/* Messages Container */}
-        <div
-          ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-4 py-6 min-h-0"
-        >
-          <div className="max-w-3xl mx-auto space-y-4">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                <div className="relative mb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 ring-1 ring-border/40 flex items-center justify-center backdrop-blur-sm shadow-sm">
-                    <Cpu className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-                <h2 className="text-2xl font-bold mb-2 tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  {user?.first_name
-                    ? `Hey ${user.first_name}, what can I help you with today?`
-                    : "How can I help you today?"}
-                </h2>
-                <p className="text-muted-foreground max-w-md text-sm">
-                  Start a conversation by typing a message below
-                </p>
-              </div>
-            ) : (
-              <>
-                {messages.map((message) => (
-                  <ChatMessage
-                    key={message.id}
-                    role={message.role}
-                    content={message.content}
-                    isStreaming={message.isStreaming}
-                    files={message.files}
-                  />
-                ))}
-                {isTyping && <TypingIndicator />}
-              </>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
+          {/* Chat Content */}
+          <>
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 overflow-y-auto px-4 py-4 min-h-0"
+            >
+              <div className="max-w-3xl mx-auto space-y-4">
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center py-16">
+                    <div className="relative mb-6">
+                      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center backdrop-blur-sm shadow-[0_10px_40px_rgba(0,0,0,0.3)]">
+                        <img src="/logo.png" alt="GenIE" className="h-12 w-12 object-contain" />
+                      </div>
+                    </div>
+                    <h2 className="text-3xl font-bold mb-2 text-foreground">Ready to get your GenIE Super Agent</h2>
+                    <p className="text-muted-foreground max-w-xl text-sm">
+                      Ask me anything and I’ll conduct GenIE Super Agent research with citations and sources
+                    </p>
 
-          {/* Input Area */}
-          <div className="">
-            <ChatInput onSendMessage={handleSendMessage} disabled={isTyping} />
-          </div>
+                    {/* Suggestions grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 w-full max-w-2xl px-2">
+                      {[
+                        { title: 'Market Entry Strategy', desc: 'Best approach to enter the APAC market for a B2B SaaS' },
+                        { title: 'Digital Transformation', desc: 'Roadmap to modernize legacy systems across business units' },
+                        { title: 'Competitive Positioning', desc: 'How to differentiate vs top 3 competitors in enterprise' },
+                        { title: 'M&A Synergy Plan', desc: 'Evaluate synergies and integration plan for target acquisition' },
+                      ].map((s) => (
+                        <button
+                          key={s.title}
+                          onClick={() => onSendMessage(`Research: ${s.desc}`)}
+                          className="text-left rounded-xl border border-border bg-card/40 hover:bg-card/70 transition-colors px-4 py-3 shadow-sm"
+                        >
+                          <div className="font-medium text-foreground mb-1">{s.title}</div>
+                          <div className="text-xs text-muted-foreground">{s.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {messages.map((message) => (
+                      <div key={message.id} className="space-y-2">
+                        <ChatMessage
+                          role={message.role}
+                          content={message.content}
+                          isStreaming={message.isStreaming}
+                          files={message.files}
+                          createdAtMs={message.createdAtMs}
+                        />
+                        {message.agentResults && message.agentResults.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {message.agentResults.map((ar, ai) => (
+                              <div key={`${message.id}-agent-${ai}`} className="flex items-center gap-2">
+                                {(ar.response_message && ar.response_message.length > 0
+                                  ? ar.response_message
+                                  : ["View results"]).map((_, mi) => (
+                                  <Button
+                                    key={`${message.id}-agent-${ai}-msg-${mi}`}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-border"
+                                    onClick={() => openAgentDialog(message.agentResults!, ar.agent_name)}
+                                  >
+                                    View {ar.agent_name} result {mi + 1}
+                                  </Button>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {isTyping && <TypingIndicator />}
+                  </>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Agent Results Dialog */}
+            <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
+              <DialogContent className="max-w-3xl w-[95vw] max-h-[85vh] overflow-hidden">
+                <DialogHeader>
+                  <DialogTitle>Executed Agents</DialogTitle>
+                  <DialogDescription>Select a tab to view each agent's output.</DialogDescription>
+                </DialogHeader>
+                {agentDialogResults && agentDialogResults.length > 0 ? (
+                  <Tabs value={activeAgentTab ?? undefined} onValueChange={setActiveAgentTab} defaultValue={agentDialogResults[0]?.agent_name}>
+                    <TabsList className="mb-3 sticky top-0 bg-background z-10">
+                      {agentDialogResults.map((ar) => (
+                        <TabsTrigger key={ar.agent_name} value={ar.agent_name}>
+                          {ar.agent_name}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    <div className="max-h-[65vh] overflow-y-auto pr-1">
+                      {agentDialogResults.map((ar, idx) => (
+                        <TabsContent key={`${ar.agent_name}-${idx}`} value={ar.agent_name}>
+                          <Card className="border-border bg-card/70">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <Brain className="h-4 w-4 text-primary" /> {ar.agent_name}
+                              </CardTitle>
+                              <CardDescription>
+                                {(ar.agent_type || "Agent")} {ar.agent_status ? "• Succeeded" : "• Failed"}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-0 space-y-3">
+                              {ar.response_error ? (
+                                <p className="text-sm text-destructive">Error: {ar.response_error}</p>
+                              ) : (
+                                <div className="space-y-2 text-sm">
+                                  {(ar.response_message ?? ["No message provided"]).map((m, i) => (
+                                    <pre key={i} className="whitespace-pre-wrap bg-muted/60 p-2 rounded border border-border text-foreground/90 text-xs">
+{m}
+                                    </pre>
+                                  ))}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </TabsContent>
+                      ))}
+                    </div>
+                  </Tabs>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No agent results available.</p>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Input Area */}
+            <div className="sticky bottom-4 w-full px-4">
+              <ChatInput onSendMessage={onSendMessage} disabled={isTyping} />
+            </div>
+          </>
         </div>
       </div>
     </div>

@@ -47,6 +47,22 @@ const App = () => (
                   </RequireAuth>
                 }
               />
+              <Route
+                path="/agents"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

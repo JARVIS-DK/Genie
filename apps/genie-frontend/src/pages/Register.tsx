@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,164 +72,158 @@ const Register = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Background accents */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-accent/10 blur-3xl" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
-        {/* Left hero with AI agents imagery */}
-        <div className="relative hidden lg:block">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-accent/20" />
-          <img
-            src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=1600&auto=format&fit=crop"
-            alt="AI Agents"
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/70 to-transparent" />
-          <div className="absolute bottom-8 left-8 right-8">
-            <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Create your account
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground max-w-md">
-              Join Genie and unlock AI agents tailored for enterprise research and strategy.
-            </p>
+    <div className="min-h-screen w-full grid grid-cols-1 md:grid-cols-2">
+      <div className="relative hidden md:block">
+        <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_10%_10%,rgba(59,130,246,0.25),transparent_60%),radial-gradient(60%_60%_at_90%_20%,rgba(244,114,182,0.25),transparent_60%),radial-gradient(60%_60%_at_50%_90%,rgba(34,197,94,0.25),transparent_60%)]" />
+        <div className="relative h-full flex flex-col justify-between p-10">
+          <img src="/logo.png" alt="GenIE" className="h-8 w-8 object-contain" />
+          <div className="text-left max-w-xl">
+            <div className="text-[11px] tracking-widest text-foreground/70 font-medium mb-3">TRUSTED BY TEAMS</div>
+            <blockquote className="text-2xl leading-relaxed text-foreground/90"> 
+              “GenIE brings the best of AI technology and research, empowering enterprises to scale without vendor lock-in, while retaining sovereignty over their AI.”
+            </blockquote>
+            <div className="mt-6 text-sm">
+              <div className="font-semibold text-foreground">Shayak Mazumder</div>
+              <div className="text-muted-foreground">Founder, GenIE</div>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Right auth card */}
-        <div className="flex items-center justify-center p-6">
-          <div className="w-full max-w-md">
-            <Card className="bg-card/70 backdrop-blur-md border-border/60 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-center">Register</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label htmlFor="firstName">First Name</Label>
-                            <FormControl>
-                              <Input id="firstName" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label htmlFor="lastName">Last Name</Label>
-                            <FormControl>
-                              <Input id="lastName" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label htmlFor="email">Email</Label>
-                          <FormControl>
-                            <Input id="email" type="email" placeholder="you@example.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="grid grid-cols-[140px_1fr] gap-3">
-                      <FormField
-                        control={form.control}
-                        name="countryCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label>Country</Label>
-                            <FormControl>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Select country" />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-64">
-                                  <SelectItem value="US">United States (+1)</SelectItem>
-                                  <SelectItem value="IN">India (+91)</SelectItem>
-                                  <SelectItem value="GB">United Kingdom (+44)</SelectItem>
-                                  <SelectItem value="AE">United Arab Emirates (+971)</SelectItem>
-                                  <SelectItem value="AU">Australia (+61)</SelectItem>
-                                  <SelectItem value="CA">Canada (+1)</SelectItem>
-                                  <SelectItem value="DE">Germany (+49)</SelectItem>
-                                  <SelectItem value="FR">France (+33)</SelectItem>
-                                  <SelectItem value="SG">Singapore (+65)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label htmlFor="phone">Phone Number</Label>
-                            <FormControl>
-                              <Input id="phone" inputMode="numeric" placeholder="1234567890" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label htmlFor="password">Password</Label>
-                          <FormControl>
-                            <Input id="password" type="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label htmlFor="confirmPassword">Confirm Password</Label>
-                          <FormControl>
-                            <Input id="confirmPassword" type="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? "Creating account..." : "Create Account"}
-                    </Button>
-                  </form>
-                </Form>
-                <div className="text-sm text-muted-foreground text-center mt-4">
-                  Already have an account? <Link className="text-primary" to="/login">Login</Link>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="flex items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          <div className="flex flex-col items-center mb-6">
+            <img src="/logo.png" alt="GenIE" className="h-10 w-10 mb-2" />
+            <h1 className="text-2xl font-semibold text-foreground">Create your account</h1>
+            <p className="text-sm text-muted-foreground mt-1">Start your journey with GenIE</p>
+          </div>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label htmlFor="firstName">First Name</Label>
+                      <FormControl>
+                        <Input id="firstName" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <FormControl>
+                        <Input id="lastName" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="email">Email</Label>
+                    <FormControl>
+                      <Input id="email" type="email" placeholder="you@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-[140px_1fr] gap-3">
+                <FormField
+                  control={form.control}
+                  name="countryCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Country</Label>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select country" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            <SelectItem value="US">United States (+1)</SelectItem>
+                            <SelectItem value="IN">India (+91)</SelectItem>
+                            <SelectItem value="GB">United Kingdom (+44)</SelectItem>
+                            <SelectItem value="AE">United Arab Emirates (+971)</SelectItem>
+                            <SelectItem value="AU">Australia (+61)</SelectItem>
+                            <SelectItem value="CA">Canada (+1)</SelectItem>
+                            <SelectItem value="DE">Germany (+49)</SelectItem>
+                            <SelectItem value="FR">France (+33)</SelectItem>
+                            <SelectItem value="SG">Singapore (+65)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <FormControl>
+                        <Input id="phone" inputMode="numeric" placeholder="1234567890" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="password">Password</Label>
+                    <FormControl>
+                      <Input id="password" type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <FormControl>
+                      <Input id="confirmPassword" type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Creating account..." : "Create Account"}
+              </Button>
+            </form>
+          </Form>
+          <div className="text-xs text-muted-foreground text-center mt-6 space-x-2">
+            <span>By continuing, you agree to our</span>
+            <a className="underline hover:text-foreground" href="#">Terms of Service</a>
+            <span>•</span>
+            <a className="underline hover:text-foreground" href="#">Privacy Policy</a>
+          </div>
+
+          <div className="text-sm text-muted-foreground text-center mt-4">
+            Already have an account? <Link className="text-primary" to="/login">Login</Link>
           </div>
         </div>
       </div>

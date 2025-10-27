@@ -1,9 +1,12 @@
-import { MessageSquare, Plus, Trash2, History } from "lucide-react";
+import { MessageSquare, Plus, Trash2, History, User, Settings, LogOut, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useAppSelector } from "@/store";
-
+import { useAppSelector, useAppDispatch } from "@/store";
+import { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { logout } from "@/services/api_request";
+import { clearUser } from "@/store/authSlice";
 
 export interface ChatHistory {
   id: string;
@@ -33,25 +36,52 @@ export const ChatSidebar = ({
 }: ChatSidebarProps) => {
 
   const user = useAppSelector((s) => s.auth.user);
-  console.log(user);
-
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    
+  }, [chatHistory]);
 
   return (
     <aside className={cn(
-      "border-r border-border/60 bg-[hsl(var(--sidebar-bg))]/70 backdrop-blur-md flex flex-col shadow-[var(--shadow-sidebar)] transition-all duration-300 ease-in-out",
+      "border-r border-border bg-[hsl(var(--sidebar-bg))] flex flex-col shadow-[var(--shadow-sidebar)] transition-all duration-300 ease-in-out",
       "h-full flex-shrink-0",
       isOpen ? "w-64" : "w-0 overflow-hidden"
     )}>
+        {/* Brand Header */}
+        <div className="px-4 pt-5 pb-7 flex items-center gap-2">
+          <img src="/logo.png" alt="GenIE" className="h-7 w-7 rounded-md object-contain" />
+          <div className="text-xl font-semibold text-foreground">GenIE</div>
+        </div>
 
         {/* New Chat Button */}
-        <div className="p-3 border-b border-border/60 bg-card/20">
-          <Button
+        <div className="px-3 pb-2">
+          <button
             onClick={onNewChat}
-            className="w-full justify-start gap-2 text-sm bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground shadow-sm h-9"
+            className="w-full flex items-center gap-2 text-sm rounded-xl px-3 py-2 bg-[hsl(var(--sidebar-accent))] text-foreground border border-[hsl(var(--sidebar-border))] hover:bg-[hsl(var(--sidebar-hover))] transition-colors"
           >
-            <Plus className="h-4 w-4" />
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary-foreground))]">
+              <Plus className="h-3 w-3" />
+            </span>
             <span className="font-medium">New Chat</span>
-          </Button>
+          </button>
+        </div>
+
+        {/* Primary Nav */}
+        <div className="px-3 space-y-1 pb-2">
+          <SidebarNavItem
+            icon={<RotateCcw className="h-4 w-4" />}
+            label="Available Agents"
+            onClick={() => navigate('/agents')}
+            active={location.pathname.startsWith('/agents')}
+          />
+          <SidebarNavItem
+            icon={<Settings className="h-4 w-4" />}
+            label="Settings"
+            onClick={() => navigate('/settings')}
+            active={location.pathname === '/settings'}
+          />
         </div>
 
       {/* Chat History */}
@@ -73,15 +103,15 @@ export const ChatSidebar = ({
               <div
                 key={chat.id}
                 className={cn(
-                  "group relative rounded-md transition-colors cursor-pointer ring-1 ring-transparent hover:ring-border/60",
+                  "group relative rounded-lg transition-all cursor-pointer",
                   currentChatId === chat.id
-                    ? "bg-[hsl(var(--sidebar-hover))] ring-border/60"
+                    ? "bg-[hsl(var(--sidebar-hover))]"
                     : "hover:bg-[hsl(var(--sidebar-hover))]"
                 )}
               >
                 <button
                   onClick={() => onSelectChat(chat.id)}
-                  className="w-full text-left p-2 pr-8"
+                  className="w-full text-left py-2 px-3 pr-10"
                 >
                   <div className="flex items-start gap-2">
                     <MessageSquare className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
@@ -106,7 +136,7 @@ export const ChatSidebar = ({
                     e.stopPropagation();
                     onDeleteChat(chat.id);
                   }}
-                  className="absolute right-1 top-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -116,7 +146,45 @@ export const ChatSidebar = ({
         </div>
       </ScrollArea>
 
-      {/* Footer removed as per request */}
+      {/* Credits Card */}
+      {/* <div className="px-3 pb-2">
+        <div className="rounded-2xl border border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-accent))] p-3">
+          <div className="flex items-center justify-between text-sm mb-1.5">
+            <div className="flex items-center gap-2 text-foreground"><span className="inline-block h-2.5 w-2.5 rounded-full bg-primary"></span> Credits</div>
+            <button className="text-xs text-primary hover:underline">Upgrade</button>
+          </div>
+          <div className="text-3xl font-semibold text-primary leading-none">7</div>
+          <div className="text-[11px] text-muted-foreground mt-1">Research credits remaining</div>
+        </div>
+      </div> */}
+
+      {/* Footer: user name and Logout */}
+      <div className="p-3 border-t border-border">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center flex-shrink-0">
+              <User className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium truncate text-foreground">{user?.first_name ?? 'User'}</div>
+              <div className="text-xs text-muted-foreground truncate">GenIE Super Agent</div>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => {
+              logout();
+              dispatch(clearUser());
+              navigate('/login');
+            }}
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
     </aside>
   );
 };
@@ -133,4 +201,21 @@ function formatRelativeTime(date: Date): string {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
+}
+
+function SidebarNavItem({ icon, label, onClick, active }: { icon: React.ReactNode; label: string; onClick?: () => void; active?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors border",
+        active
+          ? "bg-[hsl(var(--sidebar-hover))] text-foreground border-[hsl(var(--sidebar-border))]"
+          : "text-foreground/90 hover:bg-[hsl(var(--sidebar-hover))] border-transparent hover:border-[hsl(var(--sidebar-border))]"
+      )}
+    >
+      <span className="text-muted-foreground">{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
 }

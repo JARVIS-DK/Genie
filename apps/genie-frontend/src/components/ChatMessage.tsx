@@ -10,16 +10,17 @@ interface ChatMessageProps {
   content: string;
   isStreaming?: boolean;
   files?: FileAttachment[];
+  createdAtMs?: number;
 }
 
-export const ChatMessage = ({ role, content, isStreaming = false, files = [] }: ChatMessageProps) => {
+export const ChatMessage = ({ role, content, isStreaming = false, files = [], createdAtMs }: ChatMessageProps) => {
   const [displayedContent, setDisplayedContent] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     if (!isStreaming) {
       setDisplayedContent(content);
-      return undefined;
+      return;
     }
 
     if (currentIndex < content.length) {
@@ -29,10 +30,13 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [] }: 
       }, 20);
       return () => clearTimeout(timeout);
     }
-    return undefined;
   }, [content, currentIndex, isStreaming]);
 
   const isUser = role === "user";
+  const ts = createdAtMs ? new Date(createdAtMs) : null;
+  const tsText = ts
+    ? ts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : '';
 
   return (
     <div
@@ -43,10 +47,10 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [] }: 
     >
       <div
         className={cn(
-          "max-w-[80%] rounded-xl px-4 py-2.5 shadow-[var(--shadow-message)] transition-all",
+          "max-w-[80%] rounded-2xl px-4 py-2.5 shadow-[var(--shadow-message)] transition-all",
           isUser
-            ? "bg-gradient-to-r from-primary to-accent text-[hsl(var(--chat-user-fg))] shadow-md"
-            : "bg-[hsl(var(--chat-assistant-bg))]/80 text-[hsl(var(--chat-assistant-fg))] border border-border/60 backdrop-blur-sm ring-1 ring-border/40"
+            ? "bg-primary text-primary-foreground"
+            : "bg-[hsl(var(--chat-assistant-bg))] text-[hsl(var(--chat-assistant-fg))] border border-border"
         )}
       >
         {/* File Attachments */}
@@ -106,7 +110,7 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [] }: 
                       );
                     },
                     pre: ({ children }) => (
-                      <pre className="bg-muted/70 border border-border/60 p-3 rounded-lg overflow-x-auto text-xs font-mono mb-2 backdrop-blur-sm">
+                      <pre className="bg-muted p-3 rounded-lg overflow-x-auto text-xs font-mono mb-2">
                         {children}
                       </pre>
                     ),
@@ -117,18 +121,18 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [] }: 
                     ),
                     table: ({ children }) => (
                       <div className="overflow-x-auto mb-2">
-                        <table className="min-w-full border-collapse border border-border/60">
+                        <table className="min-w-full border-collapse border border-border">
                           {children}
                         </table>
                       </div>
                     ),
                     th: ({ children }) => (
-                      <th className="border border-border/60 px-2 py-1 bg-muted/60 font-semibold text-left text-xs backdrop-blur-sm">
+                      <th className="border border-border px-2 py-1 bg-muted font-semibold text-left text-xs">
                         {children}
                       </th>
                     ),
                     td: ({ children }) => (
-                      <td className="border border-border/60 px-2 py-1 text-xs">
+                      <td className="border border-border px-2 py-1 text-xs">
                         {children}
                       </td>
                     ),
@@ -151,6 +155,9 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [] }: 
                 </div>
               )}
             </div>
+          )}
+          {tsText && (
+            <div className={cn("mt-1 text-[10px] opacity-80", isUser ? "text-primary-foreground/80" : "text-muted-foreground")}>{tsText}</div>
           )}
         </div>
       </div>
