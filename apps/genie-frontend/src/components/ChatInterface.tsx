@@ -94,6 +94,18 @@ export const ChatInterface = ({
     setAgentDialogOpen(true);
   };
 
+  // Adapter to map ChatInput's File[] to FileAttachment[] expected by onSendMessage
+  const handleOnSendFromInput = (content: string, files?: File[]) => {
+    const attachments = files?.map((file) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      path: URL.createObjectURL(file),
+    })) as FileAttachment[] | undefined;
+    onSendMessage(content, attachments);
+  };
+
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden">
       {/* Header (chat window) */}
@@ -161,7 +173,7 @@ export const ChatInterface = ({
                     </p>
 
                     {/* Suggestions grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 w-full max-w-2xl px-2">
+                    {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 w-full max-w-2xl px-2">
                       {[
                         { title: 'Market Entry Strategy', desc: 'Best approach to enter the APAC market for a B2B SaaS' },
                         { title: 'Digital Transformation', desc: 'Roadmap to modernize legacy systems across business units' },
@@ -177,7 +189,7 @@ export const ChatInterface = ({
                           <div className="text-xs text-muted-foreground">{s.desc}</div>
                         </button>
                       ))}
-                    </div>
+                    </div> */}
                   </div>
                 ) : (
                   <>
@@ -274,7 +286,7 @@ export const ChatInterface = ({
 
             {/* Input Area */}
             <div className="sticky bottom-4 w-full px-4">
-              <ChatInput onSendMessage={onSendMessage} disabled={isTyping} />
+              <ChatInput onSend={handleOnSendFromInput} isLoading={isTyping} />
             </div>
           </>
         </div>
