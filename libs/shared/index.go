@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"libs/shared/components"
 	db_model "libs/shared/db_connectors/model"
 	db_repo "libs/shared/db_connectors/repository"
 	helpers "libs/shared/utils/helpers"
@@ -18,6 +19,23 @@ type ApiMetaData struct {
 	RequestedPath string `json:"requested_path"`
 	UserAgent     string `json:"user_agent"`
 	Name          string `json:"name"`
+}
+
+type ApiRequestDto struct {
+	URL         string                 `json:"url"`
+	Method      string                 `json:"method"`
+	Headers     map[string]interface{} `json:"headers"`
+	Body        map[string]interface{} `json:"body"`
+	QueryParams map[string]interface{} `json:"query_params"`
+	Timeout     int                    `json:"timeout"`
+}
+type ApiResponseDto struct {
+	Data struct {
+		Response   interface{} `json:"response_data"`
+		StatusCode string      `json:"status_code"`
+	} `json:"data"`
+	Error  error `json:"error"`
+	Status *bool `json:"status"`
 }
 
 // ========== Mongo Repository Functions ==========
@@ -62,3 +80,6 @@ var UniqueAppend = helpers.UniqueAppend
 var RemoveUint = helpers.RemoveUint
 var RemoveElementFromArray = helpers.RemoveElementFromArray
 var ContainsInterface = helpers.ContainsInterface
+
+// ========== Component Functions ==========
+var APIRequestComponentProcessor = components.APIRequestComponentProcessor

@@ -1,0 +1,186 @@
+package chat
+
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	env "apps/genie-backend/config"
+	shared "libs/shared"
+	model "libs/shared/db_connectors/model"
+
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+type Service interface {
+	Execute(metaData shared.ApiMetaData, data ExecuteRequestDto, QueryParam string) (interface{}, error)
+	GetConversations(metaData shared.ApiMetaData) (interface{}, error)
+	GetChatHistory(metaData shared.ApiMetaData, conversationId string) (interface{}, error)
+	RenameConversation(metaData shared.ApiMetaData, data RenameConversationRequestDto) (interface{}, error)
+	DeleteConversation(metaData shared.ApiMetaData, conversationId string) (interface{}, error)
+}
+
+type service struct {
+	db shared.MongoRepositoryFunctions
+}
+
+var newServiceObj *service
+
+func NewService() *service {
+	if newServiceObj != nil {
+		return newServiceObj
+	}
+
+	new_db := shared.MongoRepository()
+
+	newServiceObj = &service{new_db}
+	return newServiceObj
+}
+
+func (s *service) Execute(metaData shared.ApiMetaData, data ExecuteRequestDto, QueryParam string) (interface{}, error) {
+
+	var response ExecuteResponseDto
+	if QueryParam == "GENERATE_IMAGE" {
+		imageUrl, err := GoogleTextToImage(data.Query, s.db)
+		if err != nil {
+			fmt.Println("error in generating image", err)
+			return nil, err
+		}
+		response.Message = fmt.Sprintf("![image](%s)", imageUrl)
+	} else if QueryParam == "GENERATE_CODE" {
+		// code, err := GoogleTextToCode(data.Query)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// response.Message = code
+	}
+
+	go UpdateConversation(metaData, data, response)
+	go UpdateChatHistory(metaData, data, response)
+
+	return response, nil
+}
+
+func toAgentsExecutedResults(arr []interface{}) []AgentsExecutedResults {
+	results := make([]AgentsExecutedResults, 0, len(arr))
+	for _, v := range arr {
+		m, ok := v.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		res := AgentsExecutedResults{
+			AgentId:         fmt.Sprint(m["agent_id"]),
+			AgentName:       fmt.Sprint(m["agent_name"]),
+			AgentType:       fmt.Sprint(m["agent_type"]),
+			AgentStatus:     fmt.Sprint(m["agent_status"]),
+			Query:           fmt.Sprint(m["query"]),
+			ResponseMessage: fmt.Sprint(m["response_message"]),
+			ResponseError:   fmt.Sprint(m["response_error"]),
+			StartedAt:       parseTime(m["started_at"]),
+			CompletedAt:     parseTime(m["completed_at"]),
+		}
+		results = append(results, res)
+	}
+	return results
+}
+
+func parseTime(v interface{}) time.Time {
+	s, ok := v.(string)
+	if !ok || s == "" {
+		return time.Time{}
+	}
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t
+	}
+	return time.Time{}
+}
+
+func (s *service) GetConversations(metaData shared.ApiMetaData) (interface{}, error) {
+	ConversationCollectionName := model.CollectionName["CONVERSATION_HISTORY"]
+	filterQuery := map[string]interface{}{
+		"user_id":    metaData.UserId,
+		"is_deleted": false,
+	}
+
+	existingRecord, err := s.db.GetMany(env.GlobalEnv["MONGO_CREDENTIAL"], ConversationCollectionName, filterQuery)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		fmt.Println("error in getting conversation", err)
+		return nil, fmt.Errorf("failed to get conversation: %v", err.Error())
+	}
+
+	if existingRecord == nil {
+		return nil, nil
+	}
+	return existingRecord, nil
+}
+
+func (s *service) GetChatHistory(metaData shared.ApiMetaData, conversationId string) (interface{}, error) {
+	ChatHistoryCollectionName := model.CollectionName["CHAT_HISTORY"]
+	filterQuery := map[string]interface{}{
+		"user_id":         metaData.UserId,
+		"conversation_id": conversationId,
+	}
+
+	existingRecord, err := s.db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], ChatHistoryCollectionName, filterQuery)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, fmt.Errorf("failed to get chat history: %v", err.Error())
+	}
+
+	if existingRecord == nil {
+		return nil, nil
+	}
+
+	return existingRecord, nil
+}
+
+func (s *service) RenameConversation(metaData shared.ApiMetaData, data RenameConversationRequestDto) (interface{}, error) {
+	ConversationCollectionName := model.CollectionName["CONVERSATION_HISTORY"]
+	filterQuery := map[string]interface{}{
+		"user_id":         metaData.UserId,
+		"conversation_id": data.ConversationId,
+	}
+	updateQuery := map[string]interface{}{
+		"conversation_name": data.Name,
+	}
+
+	existingRecord, err := s.db.UpdateOne(env.GlobalEnv["MONGO_CREDENTIAL"], ConversationCollectionName, updateQuery, filterQuery)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, fmt.Errorf("failed to rename conversation: %v", err.Error())
+	}
+
+	if existingRecord == nil {
+		return nil, nil
+	}
+
+	var response = map[string]interface{}{
+		"message": "Conversation renamed successfully!",
+	}
+
+	return response, nil
+}
+
+func (s *service) DeleteConversation(metaData shared.ApiMetaData, conversationId string) (interface{}, error) {
+	ConversationCollectionName := model.CollectionName["CONVERSATION_HISTORY"]
+	filterQuery := map[string]interface{}{
+		"user_id":         metaData.UserId,
+		"conversation_id": conversationId,
+	}
+	updateQuery := map[string]interface{}{
+		"is_deleted": true,
+	}
+
+	existingRecord, err := s.db.UpdateOne(env.GlobalEnv["MONGO_CREDENTIAL"], ConversationCollectionName, updateQuery, filterQuery)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, fmt.Errorf("failed to delete conversation: %v", err.Error())
+	}
+
+	if existingRecord == nil {
+		return nil, nil
+	}
+
+	var response = map[string]interface{}{
+		"message": "Conversation deleted successfully!",
+	}
+
+	return response, nil
+}
