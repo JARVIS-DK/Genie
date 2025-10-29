@@ -187,12 +187,16 @@ func base64ToGoogleBlob(base64String *string) (string, error) {
 	//Upload to Google Cloud Storage
 	bucketName := env.GlobalEnv["GOOGLE_CLOUD_STORAGE_BUCKET_NAME"].(string)
 	objectName := "images/" + time.Now().Format("20060102") + "/" + time.Now().Format("150405") + ".png"
+	fmt.Println("before writer")
 	wc := client.Bucket(bucketName).Object(objectName).NewWriter(ctx)
+	fmt.Println("after writer")
 
 	if _, err := io.Copy(wc, bytes.NewReader(decoded)); err != nil {
+		fmt.Println("error in uploading image to google cloud storage", err)
 		return "", err
 	}
 	if err := wc.Close(); err != nil {
+		fmt.Println("error in closing writer", err)
 		return "", err
 	}
 

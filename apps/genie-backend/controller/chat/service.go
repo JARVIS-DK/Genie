@@ -104,6 +104,7 @@ func (s *service) GetConversations(metaData shared.ApiMetaData) (interface{}, er
 
 	existingRecord, err := s.db.GetMany(env.GlobalEnv["MONGO_CREDENTIAL"], ConversationCollectionName, filterQuery)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		fmt.Println("error in getting conversation", err)
 		return nil, fmt.Errorf("failed to get conversation: %v", err.Error())
 	}
 
