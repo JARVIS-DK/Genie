@@ -14,4 +14,6 @@ var GlobalEnv = map[string]interface{}{
 	"JWT_ACCESS_TOKEN_DURATION":  "10m",
 	"JWT_REFRESH_TOKEN_KEY":      "yNVrBBM+oAOWOEcXPFjJuvXXpUq/4XR1KuSGX/i+slF+oE/geu2uW25PXjfWS9pwjmTry3WXn7q0DH7I+vNSjw==",
 	"JWT_REFRESH_TOKEN_DURATION": "72h",
+
+	"GOOGLE_CLOUD_STORAGE_BUCKET_NAME": "genie-blob-storage",
 }

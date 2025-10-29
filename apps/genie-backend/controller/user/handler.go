@@ -5,8 +5,6 @@ import (
 
 	shared "libs/shared"
 
-	model "libs/shared/db_connectors/model"
-
 	echo "github.com/labstack/echo/v4"
 )
 
@@ -90,7 +88,9 @@ func (h *handler) Login(c echo.Context) error {
 	}
 
 	metaData := shared.ApiMetaData{}
-	shared.JsonMarshaller(c.Get("meta_data"), &metaData)
+	shared.PrettyPrint("metaData", c.Get("metaData"))
+	shared.PrettyPrint("meta_data", c.Get("meta_data"))
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
 
 	var data UserLoginRequestDto
 	err := c.Bind(&data)
@@ -109,31 +109,21 @@ func (h *handler) Login(c echo.Context) error {
 	return shared.RespSuccess(c, "User logged in successfully", serviceResponse)
 }
 
-func (h *handler) GenerateAccessToken(c echo.Context) error {
+func (h *handler) GetAccessToken(c echo.Context) error {
 	origin := c.Request().Header.Get("Origin")
 	if origin == "" {
 		return shared.RespFailure(c, "Origin is required in headers", nil)
 	}
 	metaData := shared.ApiMetaData{}
-	shared.JsonMarshaller(c.Get("meta_data"), &metaData)
-	var data UserGenerateAccessTokenRequestDto
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
+
+	var data UserGetAccessTokenRequestDto
 	err := c.Bind(&data)
 	if err != nil {
 		return shared.RespFailure(c, "Invalid request body", err.Error())
 	}
 
-	email := strings.ToLower(data.Email)
-	email_filterQuery := map[string]interface{}{
-		"email": email,
-	}
-
-	userData, _ := h.service.GetUser(metaData, email_filterQuery)
-	if userData == nil {
-		return shared.RespFailure(c, "User not found", nil)
-	}
-	user := model.User{}
-	shared.JsonMarshaller(userData, &user)
-	serviceResponse, err := h.service.GenerateAccessToken(metaData, user)
+	serviceResponse, err := h.service.GetAccessToken(metaData, data.RefreshToken)
 	if err != nil {
 		return shared.RespFailure(c, "Internal Server Error", err.Error())
 	}

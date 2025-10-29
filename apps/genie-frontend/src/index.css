@@ -1,0 +1,277 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 244 47% 95%;
+    --foreground: 240 10% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 10%;
+
+    --muted: 244 23% 88%;
+    --muted-foreground: 240 4% 46%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 244 23% 88%;
+    --input: 244 23% 88%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    /* Chat-specific tokens */
+    --chat-user-bg: 217 91% 60%;
+    --chat-user-fg: 0 0% 100%;
+    --chat-assistant-bg: 0 0% 100%;
+    --chat-assistant-fg: 240 10% 10%;
+    --chat-input-bg: 0 0% 100%;
+    --sidebar-bg: 0 0% 100%;
+    --sidebar-hover: 244 23% 95%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(223 90% 66%) 100%);
+    --gradient-bg: linear-gradient(135deg, hsl(244 47% 95%) 0%, hsl(250 35% 92%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(244 30% 98%) 100%);
+    
+    /* Shadows */
+    --shadow-message: 0 1px 3px hsl(240 10% 10% / 0.1);
+    --shadow-input: 0 4px 16px hsl(240 10% 10% / 0.1);
+    --shadow-sidebar: 2px 0 12px hsl(240 10% 10% / 0.05);
+    
+    /* Animations */
+    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 240 10% 10%;
+    --foreground: 240 10% 98%;
+
+    --card: 240 8% 14%;
+    --card-foreground: 240 10% 98%;
+
+    --popover: 240 8% 14%;
+    --popover-foreground: 240 10% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 4% 20%;
+    --secondary-foreground: 240 10% 98%;
+
+    --muted: 240 4% 20%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 4% 20%;
+    --input: 240 4% 20%;
+    --ring: 217 91% 60%;
+
+    --chat-user-bg: 217 91% 60%;
+    --chat-user-fg: 0 0% 100%;
+    --chat-assistant-bg: 240 8% 14%;
+    --chat-assistant-fg: 240 10% 98%;
+    --chat-input-bg: 240 8% 14%;
+    --sidebar-bg: 240 5% 12%;
+    --sidebar-hover: 240 5% 18%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(223 90% 66%) 100%);
+    --gradient-bg: linear-gradient(135deg, hsl(240 10% 10%) 0%, hsl(250 10% 12%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(240 5% 12%) 0%, hsl(240 5% 10%) 100%);
+    
+    --shadow-message: 0 1px 3px hsl(0 0% 0% / 0.3);
+    --shadow-input: 0 4px 16px hsl(0 0% 0% / 0.4);
+    --shadow-sidebar: 2px 0 12px hsl(0 0% 0% / 0.3);
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background: var(--gradient-bg);
+  }
+}
+
+@layer utilities {
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 1.5s ease-in-out infinite;
+  }
+}
+
+/* Markdown content styling for chat messages */
+@layer components {
+  .markdown-content {
+    /* Override prose styles to match chat design */
+    --tw-prose-body: hsl(var(--chat-assistant-fg));
+    --tw-prose-headings: hsl(var(--chat-assistant-fg));
+    --tw-prose-lead: hsl(var(--muted-foreground));
+    --tw-prose-links: hsl(var(--primary));
+    --tw-prose-bold: hsl(var(--chat-assistant-fg));
+    --tw-prose-counters: hsl(var(--muted-foreground));
+    --tw-prose-bullets: hsl(var(--muted-foreground));
+    --tw-prose-hr: hsl(var(--border));
+    --tw-prose-quotes: hsl(var(--muted-foreground));
+    --tw-prose-quote-borders: hsl(var(--border));
+    --tw-prose-captions: hsl(var(--muted-foreground));
+    --tw-prose-code: hsl(var(--chat-assistant-fg));
+    --tw-prose-pre-code: hsl(var(--chat-assistant-fg));
+    --tw-prose-pre-bg: hsl(var(--muted));
+    --tw-prose-th-borders: hsl(var(--border));
+    --tw-prose-td-borders: hsl(var(--border));
+  }
+
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3,
+  .markdown-content h4,
+  .markdown-content h5,
+  .markdown-content h6 {
+    color: hsl(var(--chat-assistant-fg));
+    font-weight: 600;
+  }
+
+  .markdown-content p {
+    color: hsl(var(--chat-assistant-fg));
+    line-height: 1.6;
+  }
+
+  .markdown-content code {
+    background-color: hsl(var(--muted));
+    color: hsl(var(--chat-assistant-fg));
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+  }
+
+  .markdown-content pre {
+    background-color: hsl(var(--muted));
+    color: hsl(var(--chat-assistant-fg));
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    overflow-x: auto;
+    font-size: 0.875em;
+  }
+
+  .markdown-content pre code {
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .markdown-content blockquote {
+    border-left-color: hsl(var(--primary));
+    color: hsl(var(--muted-foreground));
+    font-style: italic;
+  }
+
+  .markdown-content table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  .markdown-content th,
+  .markdown-content td {
+    border: 1px solid hsl(var(--border));
+    padding: 0.5rem;
+    text-align: left;
+  }
+
+  .markdown-content th {
+    background-color: hsl(var(--muted));
+    font-weight: 600;
+  }
+
+  .markdown-content ul,
+  .markdown-content ol {
+    padding-left: 1.5rem;
+  }
+
+  .markdown-content li {
+    margin: 0.25rem 0;
+  }
+
+  .markdown-content a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+  }
+
+  .markdown-content a:hover {
+    text-decoration: none;
+  }
+}

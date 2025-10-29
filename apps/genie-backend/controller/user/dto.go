@@ -13,7 +13,6 @@ type UserLoginRequestDto struct {
 	Password string `json:"password" bson:"password" validate:"required,min=6,max=100"`
 }
 
-type UserGenerateAccessTokenRequestDto struct {
-	Email        string `json:"email" bson:"email" validate:"required,email"`
+type UserGetAccessTokenRequestDto struct {
 	RefreshToken string `json:"refresh_token" bson:"refresh_token" validate:"required"`
 }
