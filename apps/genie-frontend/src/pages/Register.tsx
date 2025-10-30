@@ -76,15 +76,15 @@ const Register = () => {
       <div className="relative hidden md:block">
         <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_10%_10%,rgba(59,130,246,0.25),transparent_60%),radial-gradient(60%_60%_at_90%_20%,rgba(244,114,182,0.25),transparent_60%),radial-gradient(60%_60%_at_50%_90%,rgba(34,197,94,0.25),transparent_60%)]" />
         <div className="relative h-full flex flex-col justify-between p-10">
-          <img src="/logo.png" alt="GenIE" className="h-8 w-8 object-contain" />
+          <img src="/logo.png" alt="GenIE" className="h-10 w-10 object-contain" />
           <div className="text-left max-w-xl">
             <div className="text-[11px] tracking-widest text-foreground/70 font-medium mb-3">TRUSTED BY TEAMS</div>
             <blockquote className="text-2xl leading-relaxed text-foreground/90"> 
               “GenIE brings the best of AI technology and research, empowering enterprises to scale without vendor lock-in, while retaining sovereignty over their AI.”
             </blockquote>
             <div className="mt-6 text-sm">
-              <div className="font-semibold text-foreground">Shayak Mazumder</div>
-              <div className="text-muted-foreground">Founder, GenIE</div>
+              {/* <div className="font-semibold text-foreground">Shayak Mazumder</div>
+              <div className="text-muted-foreground">Founder, GenIE</div> */}
             </div>
           </div>
         </div>
