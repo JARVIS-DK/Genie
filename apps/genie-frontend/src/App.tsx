@@ -12,6 +12,7 @@ import { Provider } from "react-redux";
 import { store, persistor } from "@/store";
 import { PersistGate } from "redux-persist/integration/react";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -49,6 +50,38 @@ const App = () => (
               />
               <Route
                 path="/agents"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/slides"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/image"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/chat"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/developer"
                 element={
                   <RequireAuth>
                     <Index />

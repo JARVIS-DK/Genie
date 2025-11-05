@@ -623,13 +623,13 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
               />
             </div>
 
-            {isRecording && (
+            {/* {isRecording && (
               <VoiceRecorder
                 isRecording={isRecording}
                 onStartRecording={handleStartRecording}
                 onStopRecording={handleStopRecording}
               />
-            )}
+            )} */}
 
             <PromptInputActions className="flex items-center justify-between gap-2 p-0 pt-2">
               <div
@@ -731,7 +731,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
 
                   <CustomDivider />
 
-                  <button
+                  {/* <button
                     type="button"
                     onClick={handleCanvasToggle}
                     className={cn(
@@ -763,7 +763,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                         </motion.span>
                       )}
                     </AnimatePresence>
-                  </button>
+                  </button> */}
                 </div>
               </div>
 
@@ -778,7 +778,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                       : "Voice message"
                   }
                 >
-                  <Button
+                  {/* <Button
                     variant="default"
                     size="icon"
                     className={cn(
@@ -803,7 +803,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                     ) : (
                       <Mic className="h-5 w-5 text-[#1F2023] transition-colors" />
                     )}
-                  </Button>
+                  </Button> */}
                 </PromptInputAction>
 
                 {/* Dedicated Send button */}
