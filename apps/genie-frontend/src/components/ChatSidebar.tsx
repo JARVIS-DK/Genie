@@ -1,4 +1,4 @@
-import { MessageSquare, Plus, Trash2, History, User, Settings, LogOut } from "lucide-react";
+import { MessageSquare, Plus, Trash2, History, User, Settings, LogOut, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -75,6 +75,12 @@ export const ChatSidebar = ({
             active={location.pathname.startsWith('/agents')}
           />
           */}
+          <SidebarNavItem
+            icon={<Music className="h-4 w-4" />}
+            label="AI Music"
+            onClick={() => navigate('/ai/music')}
+            active={location.pathname === '/ai/music'}
+          />
           <SidebarNavItem
             icon={<Settings className="h-4 w-4" />}
             label="Settings"

@@ -9,6 +9,7 @@ import AISlidesPage from "./AISlides";
 import AIImagePage from "./AIImage";
 import AIChatDemoPage from "./AIChat";
 import AIDeveloperPage from "./AIDeveloper";
+import AIMusicPage from "./AIMusic";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 interface Chat {
@@ -421,6 +422,8 @@ const Index = () => {
           <AIChatDemoPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : location.pathname === "/ai/developer" ? (
           <AIDeveloperPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/music" ? (
+          <AIMusicPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : (
           <ChatInterface
             messages={messages}
