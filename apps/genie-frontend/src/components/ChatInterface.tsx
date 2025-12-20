@@ -169,7 +169,7 @@ export const ChatInterface = ({
                         <img src="/logo.png" alt="GenIE" className="h-12 w-12 object-contain" />
                       </div>
                     </div>
-                    <h2 className="text-3xl font-bold mb-2 text-foreground">Genspark Super Agent</h2>
+                    <h2 className="text-3xl font-bold mb-2 text-foreground">GenIE Super Agent</h2>
                     <p className="text-muted-foreground max-w-xl text-sm mb-6">
                       Ask anything, create anything
                     </p>

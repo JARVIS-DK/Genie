@@ -1,9 +1,9 @@
-import { MessageSquare, Plus, Trash2, History, User, Settings, LogOut, RotateCcw } from "lucide-react";
+import { MessageSquare, Plus, Trash2, History, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/store";
-import { useEffect } from "react";
+
 import { useNavigate, useLocation } from "react-router-dom";
 import { logout } from "@/services/api_request";
 import { clearUser } from "@/store/authSlice";
@@ -39,9 +39,6 @@ export const ChatSidebar = ({
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  useEffect(() => {
-    
-  }, [chatHistory]);
 
   return (
     <aside className={cn(
@@ -70,12 +67,14 @@ export const ChatSidebar = ({
 
         {/* Primary Nav */}
         <div className="px-3 space-y-1 pb-2">
+          {/*
           <SidebarNavItem
             icon={<RotateCcw className="h-4 w-4" />}
             label="Available Agents"
             onClick={() => navigate('/agents')}
             active={location.pathname.startsWith('/agents')}
           />
+          */}
           <SidebarNavItem
             icon={<Settings className="h-4 w-4" />}
             label="Settings"
