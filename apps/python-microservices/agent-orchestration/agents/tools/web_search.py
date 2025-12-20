@@ -32,6 +32,3 @@ def web_search(query: str, search_depth: str = "basic" or "advanced", topics: st
     
     return {"status": "error", "message": "Failed to search the web, Please try again later"}
 
-
-result = web_search(query="What is the capital of France?")
-print(result)
