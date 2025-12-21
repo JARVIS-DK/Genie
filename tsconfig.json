@@ -5,6 +5,9 @@
   "references": [
     {
       "path": "./apps/genie-frontend"
+    },
+    {
+      "path": "./apps/presenton-react-test"
     }
   ]
 }
