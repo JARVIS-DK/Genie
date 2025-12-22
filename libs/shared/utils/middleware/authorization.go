@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"libs/shared/utils/helpers"
 	"strconv"
 	"strings"
 	"time"
@@ -86,6 +87,8 @@ func AuthorizationCheck(jwtKey string, mongo_credientials interface{}) echo.Midd
 			}
 
 			c.Set("metaData", metaData)
+
+			helpers.PrettyPrint("metaData", metaData)
 
 			return next(c)
 		}
