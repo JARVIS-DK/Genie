@@ -258,7 +258,7 @@ func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRep
 			}
 
 			base64Images = append(base64Images, b64)
-			fileName := fmt.Sprintf("generated_images/%v-%v.png", shared.GenerateRandomString(4), shared.GenerateRandomString(4))
+			fileName := fmt.Sprintf("generated_images/%v.png", shared.GenerateRandomString(10))
 			imageBytes, err := base64.StdEncoding.DecodeString(b64)
 			if err != nil {
 				return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err

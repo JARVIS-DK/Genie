@@ -104,7 +104,7 @@ func GoogleVideoGeneration(data GoogleVideoGenerationRequest, db shared.MongoRep
 		}, nil
 	}
 
-	fileName := fmt.Sprintf("generated_videos/%v-%v.mp4", shared.GenerateRandomString(4), shared.GenerateRandomString(4))
+	fileName := fmt.Sprintf("generated_videos/%v.mp4", shared.GenerateRandomString(10))
 
 	// Download the generated video content from Gemini and upload that to GCS.
 	rc, err := client.Files.Download(ctx, video.Video, nil)
