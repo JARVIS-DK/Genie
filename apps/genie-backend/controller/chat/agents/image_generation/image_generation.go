@@ -2,6 +2,7 @@ package image_generation
 
 import (
 	env "apps/genie-backend/config"
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -197,7 +198,16 @@ func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRep
 	imagesURLs := make([]string, 0)
 
 	responseMessage := ""
-	googleStorageBucketName := env.GlobalEnv["GOOGLE_STORAGE_BUCKET_NAME"].(string)
+	googleStorageBucketName, ok := env.GlobalEnv["GOOGLE_CLOUD_STORAGE_BUCKET_NAME"].(string)
+	if !ok || googleStorageBucketName == "" {
+		return shared.ResponseStruct{
+			Data:   nil,
+			Error:  errors.New("google cloud storage bucket name not configured"),
+			Status: false,
+		}, nil
+	}
+
+	googleServiceAccountURL := env.GlobalEnv["GOOGLE_SERVICE_ACCOUNT_URL"].(string)
 
 	for _, cand := range candidates {
 		candMap, ok := cand.(map[string]interface{})
@@ -241,9 +251,16 @@ func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRep
 			if b64 == "" {
 				continue
 			}
-			base64Images = append(base64Images, b64)
 
-			imageURL, uploadErr := shared.Base64ToGoogleBlob(&b64, googleStorageBucketName)
+			base64Images = append(base64Images, b64)
+			fileName := shared.GenerateRandomStringLowerCase(7)
+			imageBytes, err := base64.StdEncoding.DecodeString(b64)
+			if err != nil {
+				return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+			}
+			imageReader := bytes.NewReader(imageBytes)
+			imageURL, _, uploadErr := shared.UploadToGCS(googleServiceAccountURL, googleStorageBucketName, imageReader, "image/png", fileName)
+			// imageURL, uploadErr := shared.Base64ToGoogleBlob(&b64, googleStorageBucketName, googleStorageCredentials)
 			if uploadErr != nil {
 				return shared.ResponseStruct{Data: nil, Error: uploadErr, Status: false}, uploadErr
 			}

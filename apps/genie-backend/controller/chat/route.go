@@ -19,7 +19,7 @@ func (h *handler) Route(g *echo.Group) {
 	g.GET("/delete-conversation/:conversation_id", h.DeleteConversation, shared.AuthorizationCheck(authKey, mongoCredential))
 	// g.POST("/file-upload", h.FileUpload, shared.AuthorizationCheck(authKey, mongoCredential))
 
-	g.POST("execute/generate-image", h.GenerateImage, shared.AuthorizationCheck(authKey, mongoCredential))
+	g.POST("/execute/generate-image", h.GenerateImage, shared.AuthorizationCheck(authKey, mongoCredential))
 	g.GET("/get-generated-images", h.GetGeneratedImages, shared.AuthorizationCheck(authKey, mongoCredential))
 
 	// g.POST("execute/deep-search")
