@@ -168,3 +168,38 @@ func (h *handler) GetGeneratedImages(c echo.Context) error {
 	return shared.RespSuccess(c, "Generated Images Fetch Successful", serviceResponse)
 
 }
+
+func (h *handler) GenerateVideo(c echo.Context) error {
+
+	var metaData shared.ApiMetaData
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
+	var data GenerateVideoDto
+	err := c.Bind(&data)
+	if err != nil {
+		fmt.Println("error in binding request body", err)
+		return shared.RespFailure(c, "Invalid request body", err.Error())
+	}
+
+	serviceResponse, err := h.service.GenerateVideo(metaData, data)
+	if err != nil {
+		fmt.Println("error in executing chat", err)
+		return shared.RespFailure(c, "Internal Server Error", err.Error())
+	}
+
+	return shared.RespSuccess(c, "Chat executed successfully", serviceResponse)
+}
+
+func (h *handler) GetGeneratedVideos(c echo.Context) error {
+
+	var metaData shared.ApiMetaData
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
+
+	serviceResponse, err := h.service.GetGeneratedVideos(metaData)
+	if err != nil {
+		fmt.Println("error in geting images", err)
+		return shared.RespFailure(c, "Internal Server Error", err.Error())
+	}
+
+	return shared.RespSuccess(c, "Generated Images Fetch Successful", serviceResponse)
+
+}

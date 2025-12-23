@@ -6,5 +6,5 @@ var CollectionName = map[string]string{
 	"CONVERSATION_HISTORY":     "conversation_history",
 	"API_KEYS":                 "api_keys",
 	"IMAGE_GENERATION_HISTORY": "image_generation_history",
-	"":                         "",
+	"VIDEO_GENERATION_HISTORY": "video_generation_history",
 }

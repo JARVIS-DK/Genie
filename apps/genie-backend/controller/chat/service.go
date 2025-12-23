@@ -7,6 +7,7 @@ import (
 
 	env "apps/genie-backend/config"
 	imageGeneration "apps/genie-backend/controller/chat/agents/image_generation"
+	videoGeneration "apps/genie-backend/controller/chat/agents/video_generation"
 	shared "libs/shared"
 	model "libs/shared/db_connectors/model"
 
@@ -21,6 +22,8 @@ type Service interface {
 	DeleteConversation(metaData shared.ApiMetaData, conversationId string) (interface{}, error)
 	GenerateImage(metaData shared.ApiMetaData, data GenerateImageDto) (interface{}, error)
 	GetGeneratedImages(metaData shared.ApiMetaData) (interface{}, error)
+	GenerateVideo(metaData shared.ApiMetaData, data GenerateVideoDto) (interface{}, error)
+	GetGeneratedVideos(metaData shared.ApiMetaData) (interface{}, error)
 }
 
 type service struct {
@@ -209,7 +212,7 @@ func (s *service) GenerateImage(metaData shared.ApiMetaData, data GenerateImageD
 		return nil, errors.New("image generation failed")
 	}
 
-	return resp.Data, nil
+	return resp, nil
 }
 
 func (s *service) GetGeneratedImages(metaData shared.ApiMetaData) (interface{}, error) {
@@ -221,6 +224,50 @@ func (s *service) GetGeneratedImages(metaData shared.ApiMetaData) (interface{}, 
 	}
 
 	existingRecord, err := s.db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], generatedImageHistoryCollectionName, filterQuery)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, fmt.Errorf("failed to get chat history: %v", err.Error())
+	}
+
+	if existingRecord == nil {
+		return nil, nil
+	}
+
+	return existingRecord, nil
+
+}
+
+func (s *service) GenerateVideo(metaData shared.ApiMetaData, data GenerateVideoDto) (interface{}, error) {
+
+	agentReq := videoGeneration.GoogleVideoGenerationRequest{
+		Query:      data.Query,
+		VideoModel: data.VideoModel,
+	}
+
+	resp, err := videoGeneration.GoogleVideoGeneration(agentReq, s.db, metaData)
+
+	if err != nil {
+		return nil, err
+	}
+	if !resp.Status {
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+		return nil, errors.New("image generation failed")
+	}
+
+	return resp, nil
+
+}
+
+func (s *service) GetGeneratedVideos(metaData shared.ApiMetaData) (interface{}, error) {
+
+	generatedVideoHistoryCollectionName := model.CollectionName["VIDEO_GENERATION_HISTORY"]
+
+	filterQuery := map[string]interface{}{
+		"user_id": metaData.UserId,
+	}
+
+	existingRecord, err := s.db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], generatedVideoHistoryCollectionName, filterQuery)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, fmt.Errorf("failed to get chat history: %v", err.Error())
 	}

@@ -2,6 +2,7 @@ package image_generation
 
 import (
 	env "apps/genie-backend/config"
+	promptGenerator "apps/genie-backend/controller/chat/agents/prompt_generator"
 	"bytes"
 	"encoding/base64"
 	"errors"
@@ -26,7 +27,6 @@ func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRep
 		"Content-Type":   "application/json",
 		"x-goog-api-key": "",
 	}
-
 	apiKeysCollectionName := model.CollectionName["API_KEYS"]
 	filterQuery := map[string]interface{}{
 		"code": "GOOGLE_TEXT_TO_IMAGE_API_KEY",
@@ -44,9 +44,14 @@ func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRep
 		headers["x-goog-api-key"] = fmt.Sprint(apiKeyAny)
 	}
 
+	title, enhancedQuery, err := promptGenerator.GenerateTitleAndEnhancedQuery(data.Query, "IMAGE_GENERATION", headers["x-goog-api-key"].(string))
+	if err != nil {
+		return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+	}
+
 	parts := []map[string]interface{}{
 		{
-			"text": data.Query,
+			"text": enhancedQuery,
 		},
 	}
 
@@ -253,7 +258,7 @@ func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRep
 			}
 
 			base64Images = append(base64Images, b64)
-			fileName := shared.GenerateRandomStringLowerCase(7)
+			fileName := fmt.Sprintf("generated_images/%v-%v.png", shared.GenerateRandomString(4), shared.GenerateRandomString(4))
 			imageBytes, err := base64.StdEncoding.DecodeString(b64)
 			if err != nil {
 				return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
@@ -277,13 +282,15 @@ func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRep
 		}, nil
 	}
 
-	for _, image := range imagesURLs {
+	for index, image := range imagesURLs {
 		collectionName := model.CollectionName["IMAGE_GENERATION_HISTORY"]
 		createPayload := map[string]interface{}{
-			"image_url":   image,
-			"image_query": data.Query,
-			"user_id":     metaData.UserId,
-			"created_at":  time.Now().UTC(),
+			"image_url":      image,
+			"user_query":     data.Query,
+			"enhanced_query": enhancedQuery,
+			"image_title":    fmt.Sprintf("%v - %v", title, index),
+			"user_id":        metaData.UserId,
+			"created_at":     time.Now().UTC(),
 		}
 
 		_, err = db.CreateOne(env.GlobalEnv["MONGO_CREDENTIAL"], collectionName, createPayload)

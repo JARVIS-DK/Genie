@@ -21,6 +21,8 @@ func (h *handler) Route(g *echo.Group) {
 
 	g.POST("/execute/generate-image", h.GenerateImage, shared.AuthorizationCheck(authKey, mongoCredential))
 	g.GET("/get-generated-images", h.GetGeneratedImages, shared.AuthorizationCheck(authKey, mongoCredential))
+	g.POST("/execute/generate-video", h.GenerateVideo, shared.AuthorizationCheck(authKey, mongoCredential))
+	g.GET("/get-generated-videos", h.GetGeneratedVideos, shared.AuthorizationCheck(authKey, mongoCredential))
 
 	// g.POST("execute/deep-search")
 }
