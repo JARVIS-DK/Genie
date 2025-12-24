@@ -57,3 +57,8 @@ type GenerateImageDto struct {
 	NumberofImages any      `json:"number_of_images" default:"1"`
 	ImageUrls      []string `json:"image_urls"` // only editing image
 }
+
+type GenerateVideoDto struct {
+	Query      string `json:"query"`
+	VideoModel string `json:"video_model" default:"veo-3.1-generate-preview"`
+}

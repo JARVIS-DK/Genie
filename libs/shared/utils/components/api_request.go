@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"libs/shared/utils/helpers"
 	"net/http"
 	"net/url"
@@ -133,7 +133,7 @@ func APIRequestComponentProcessor(data any) (ResponseStruct, error) {
 	defer resp.Body.Close()
 
 	// Read the response body
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 
 		return ResponseStruct{
@@ -305,7 +305,7 @@ func APIRequestComponentProcessorStream(data any, streamingChan chan map[string]
 		responseData = strings.Join(streamData, "\n")
 	} else {
 		// Handle regular response
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return ResponseStruct{
 				Data:   nil,

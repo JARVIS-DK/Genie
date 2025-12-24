@@ -131,14 +131,15 @@ func GoogleTextToImage(text string, db shared.MongoRepositoryFunctions) (string,
 	if !ok {
 		return "", errors.New("missing base64 data in inlineData")
 	}
-	base64String := fmt.Sprint(b64Any)
+	_ = fmt.Sprint(b64Any)
 
-	url, err := base64ToGoogleBlob(&base64String)
-	if err != nil {
-		return "", err
-	}
+	// base64String = base64String[base64String.index("data:image/png;base64,"):]
+	// url, err := config.Base64ToGoogleBlob(&base64String)
+	// if err != nil {
+	// 	return "", err
+	// }
 
-	shared.NormalPrint("Base64 String", base64String)
+	// shared.NormalPrint("Base64 String", base64String)
 
-	return url, nil
+	return "", nil
 }

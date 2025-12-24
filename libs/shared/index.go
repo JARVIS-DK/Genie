@@ -89,4 +89,4 @@ var ContainsInterface = helpers.ContainsInterface
 
 // ========== Component Functions ==========
 var APIRequestComponentProcessor = components.APIRequestComponentProcessor
-var Base64ToGoogleBlob = components.Base64ToGoogleBlob
+var UploadToGCS = components.UploadToGCS
