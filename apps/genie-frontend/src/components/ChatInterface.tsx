@@ -8,6 +8,7 @@ import { FileAttachment } from "@/services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate } from "react-router-dom";
 
 export interface Message {
   id: string;
@@ -53,6 +54,7 @@ export const ChatInterface = ({
   const [activeAgentTab, setActiveAgentTab] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     const container = scrollContainerRef.current;
@@ -161,35 +163,45 @@ export const ChatInterface = ({
             >
               <div className="max-w-3xl mx-auto space-y-4">
                 {messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center py-16">
+                  <div className="flex flex-col items-center justify-center h-[calc(100vh-220px)] text-center py-8">
                     <div className="relative mb-6">
                       <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center backdrop-blur-sm shadow-[0_10px_40px_rgba(0,0,0,0.3)]">
                         <img src="/logo.png" alt="GenIE" className="h-12 w-12 object-contain" />
                       </div>
                     </div>
-                    <h2 className="text-3xl font-bold mb-2 text-foreground">Ready to get your GenIE Super Agent</h2>
-                    <p className="text-muted-foreground max-w-xl text-sm">
-                      Ask me anything and I’ll conduct GenIE Super Agent research with citations and sources
+                    <h2 className="text-3xl font-bold mb-2 text-foreground">GenIE Super Agent</h2>
+                    <p className="text-muted-foreground max-w-xl text-sm mb-6">
+                      Ask anything, create anything
                     </p>
 
-                    {/* Suggestions grid */}
-                    {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 w-full max-w-2xl px-2">
-                      {[
-                        { title: 'Market Entry Strategy', desc: 'Best approach to enter the APAC market for a B2B SaaS' },
-                        { title: 'Digital Transformation', desc: 'Roadmap to modernize legacy systems across business units' },
-                        { title: 'Competitive Positioning', desc: 'How to differentiate vs top 3 competitors in enterprise' },
-                        { title: 'M&A Synergy Plan', desc: 'Evaluate synergies and integration plan for target acquisition' },
-                      ].map((s) => (
-                        <button
-                          key={s.title}
-                          onClick={() => onSendMessage(`Research: ${s.desc}`)}
-                          className="text-left rounded-xl border border-border bg-card/40 hover:bg-card/70 transition-colors px-4 py-3 shadow-sm"
-                        >
-                          <div className="font-medium text-foreground mb-1">{s.title}</div>
-                          <div className="text-xs text-muted-foreground">{s.desc}</div>
-                        </button>
-                      ))}
-                    </div> */}
+                    {/* Centered Chat input */}
+                    <div className="w-full max-w-2xl">
+                      <ChatInput onSend={handleOnSendFromInput} isLoading={isTyping} />
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="mt-4 w-full max-w-xl">
+                      <div className="grid grid-cols-4 justify-items-center">
+                        {[
+                          { label: "AI Slides", path: "/ai/slides", iconBg: "from-purple-500/20 to-purple-400/10", emoji: "📑" },
+                          { label: "AI Image", path: "/ai/image", iconBg: "from-amber-500/20 to-amber-400/10", emoji: "🖼️" },
+                          { label: "AI Chat", path: "/ai/chat", iconBg: "from-sky-500/20 to-sky-400/10", emoji: "💬" },
+                          { label: "AI Developer", path: "/ai/developer", iconBg: "from-emerald-500/20 to-emerald-400/10", emoji: "🧑‍💻" },
+                        ].map((b) => (
+                          <button
+                            key={b.label}
+                            className="group flex flex-col items-center gap-1.5"
+                            onClick={() => navigate(b.path)}
+                          >
+                            <div className={`h-10 w-10 rounded-full bg-gradient-to-br ${b.iconBg} flex items-center justify-center border border-border group-hover:scale-105 transition-transform`}
+                            >
+                              <span className="text-base select-none">{b.emoji}</span>
+                            </div>
+                            <span className="text-[11px] leading-tight text-foreground/90">{b.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -284,10 +296,12 @@ export const ChatInterface = ({
               </DialogContent>
             </Dialog>
 
-            {/* Input Area */}
-            <div className="sticky bottom-4 w-full px-4">
-              <ChatInput onSend={handleOnSendFromInput} isLoading={isTyping} />
-            </div>
+            {/* Input Area only when messages exist */}
+            {messages.length > 0 && (
+              <div className="sticky bottom-4 w-full px-4">
+                <ChatInput onSend={handleOnSendFromInput} isLoading={isTyping} />
+              </div>
+            )}
           </>
         </div>
       </div>

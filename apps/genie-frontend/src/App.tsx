@@ -7,10 +7,13 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import AIMusicPage from "./pages/AIMusic";
+import MusicPlayerPage from "./pages/MusicPlayer";
 import RequireAuth from "@/components/RequireAuth";
 import { Provider } from "react-redux";
 import { store, persistor } from "@/store";
 import { PersistGate } from "redux-persist/integration/react";
+
 
 const queryClient = new QueryClient();
 
@@ -48,7 +51,55 @@ const App = () => (
                 }
               />
               <Route
+                path="/ai/music"
+                element={
+                  <RequireAuth>
+                    <AIMusicPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/music/:id"
+                element={
+                  <RequireAuth>
+                    <MusicPlayerPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
                 path="/agents"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/slides"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/image"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/chat"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/developer"
                 element={
                   <RequireAuth>
                     <Index />

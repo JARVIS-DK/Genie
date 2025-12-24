@@ -5,6 +5,11 @@ import { FileAttachment } from "@/services/api";
 import { apiRequest } from "@/services/api_request";
 import SettingsPage from "./Settings";
 import AvailableAgents from "./AvailableAgents"
+import AISlidesPage from "./AISlides";
+import AIImagePage from "./AIImage";
+import AIChatDemoPage from "./AIChat";
+import AIDeveloperPage from "./AIDeveloper";
+import AIMusicPage from "./AIMusic";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 interface Chat {
@@ -409,6 +414,16 @@ const Index = () => {
           <SettingsPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : location.pathname === "/agents" ? (
           <AvailableAgents isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/slides" ? (
+          <AISlidesPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/image" ? (
+          <AIImagePage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/chat" ? (
+          <AIChatDemoPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/developer" ? (
+          <AIDeveloperPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/music" ? (
+          <AIMusicPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : (
           <ChatInterface
             messages={messages}

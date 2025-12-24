@@ -6,6 +6,7 @@ import (
 	"time"
 
 	env "apps/genie-backend/config"
+	imageGeneration "apps/genie-backend/controller/chat/agents/image_generation"
 	shared "libs/shared"
 	model "libs/shared/db_connectors/model"
 
@@ -18,6 +19,8 @@ type Service interface {
 	GetChatHistory(metaData shared.ApiMetaData, conversationId string) (interface{}, error)
 	RenameConversation(metaData shared.ApiMetaData, data RenameConversationRequestDto) (interface{}, error)
 	DeleteConversation(metaData shared.ApiMetaData, conversationId string) (interface{}, error)
+	GenerateImage(metaData shared.ApiMetaData, data GenerateImageDto) (interface{}, error)
+	GetGeneratedImages(metaData shared.ApiMetaData) (interface{}, error)
 }
 
 type service struct {
@@ -183,4 +186,49 @@ func (s *service) DeleteConversation(metaData shared.ApiMetaData, conversationId
 	}
 
 	return response, nil
+}
+
+func (s *service) GenerateImage(metaData shared.ApiMetaData, data GenerateImageDto) (interface{}, error) {
+	agentReq := imageGeneration.GeminiImageGenerationRequest{
+		Query:          data.Query,
+		ImageModel:     data.ImageModel,
+		ImageSize:      data.ImageSize,
+		AspectRatio:    data.AspectRatio,
+		NumberofImages: data.NumberofImages,
+		ImageUrls:      data.ImageUrls,
+	}
+
+	resp, err := imageGeneration.GeminiImageGeneration(agentReq, s.db, metaData)
+	if err != nil {
+		return nil, err
+	}
+	if !resp.Status {
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+		return nil, errors.New("image generation failed")
+	}
+
+	return resp.Data, nil
+}
+
+func (s *service) GetGeneratedImages(metaData shared.ApiMetaData) (interface{}, error) {
+
+	generatedImageHistoryCollectionName := model.CollectionName["IMAGE_GENERATION_HISTORY"]
+
+	filterQuery := map[string]interface{}{
+		"user_id": metaData.UserId,
+	}
+
+	existingRecord, err := s.db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], generatedImageHistoryCollectionName, filterQuery)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, fmt.Errorf("failed to get chat history: %v", err.Error())
+	}
+
+	if existingRecord == nil {
+		return nil, nil
+	}
+
+	return existingRecord, nil
+
 }
