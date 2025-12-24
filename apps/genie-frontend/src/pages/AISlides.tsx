@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Bot, PanelLeft, FileText } from "lucide-react";
+import { Bot, PanelLeft } from "lucide-react";
 
 interface PageProps {
   isSidebarOpen?: boolean;
@@ -7,6 +7,9 @@ interface PageProps {
 }
 
 export default function AISlidesPage({ isSidebarOpen, onToggleSidebar }: PageProps) {
+  // Replace this with the static URL you want to display in fullscreen
+  const IFRAME_URL = 'https://theuselessweb.com/';
+
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden">
       <header className="flex items-center justify-between p-4 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
@@ -34,19 +37,15 @@ export default function AISlidesPage({ isSidebarOpen, onToggleSidebar }: PagePro
           </Button>
         </div>
 
-        <div className="h-full overflow-y-auto px-6 py-6">
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-              <h2 className="text-2xl font-semibold">AI Slides</h2>
-            </div>
-            <p className="text-muted-foreground text-sm mb-6">Demo page. Plug your slides generator here.</p>
-            <div className="rounded-xl border border-border bg-card/60 p-6">
-              <p className="text-sm text-foreground/90">This is a demo placeholder for AI Slides.</p>
-            </div>
-          </div>
+        <div className="h-full relative">
+          {/* Fullscreen iframe occupying the page area below the header */}
+          <iframe
+            src={IFRAME_URL}
+            title="AI Slides - Fullscreen"
+            className="absolute inset-0 w-full h-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            allowFullScreen
+          />
         </div>
       </div>
     </div>

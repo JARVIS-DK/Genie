@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../services/api_request';
+import { apiRequest, apiDownload } from '../services/api_request';
 
 interface ImageData {
   url: string;
@@ -13,19 +13,62 @@ const AIImage: React.FC = () => {
   const [prompt, setPrompt] = useState('');
 
   const handleDownload = async (imageUrl: string, caption: string) => {
+    // Helper to create a safe filename
+    const sanitizeFilename = (name: string) => name.replace(/[^a-z0-9_\-\.]/gi, '_').slice(0, 128);
+    const getExtensionFromUrl = (url: string) => {
+      try {
+        const m = url.match(/\.([a-zA-Z0-9]+)(?:[?#]|$)/);
+        return m ? `.${m[1]}` : '';
+      } catch {
+        return '';
+      }
+    };
+
     try {
-      const response = await fetch(imageUrl);
+      // Attempt to fetch the image as a blob (may fail if CORS headers are missing)
+      const response = await fetch(imageUrl, { mode: 'cors' });
+      if (!response.ok) throw new Error('Network response was not ok');
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const objectUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.download = url;
+      link.href = objectUrl;
+
+      // Prefer extension from the URL, fallback to blob MIME type
+      const ext = getExtensionFromUrl(imageUrl) || (blob.type ? `.${blob.type.split('/')[1]}` : '');
+      const baseName = caption ? sanitizeFilename(caption) : 'image';
+      link.download = `${baseName}${ext}`;
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(objectUrl);
     } catch (error) {
-      console.error('Error downloading image:', error);
+      console.warn('Fetch failed locally, attempting backend proxy download:', error);
+      try {
+        // Ask backend to fetch the resource and return it so browser can download directly
+        const blob = await apiDownload({ url: '/chat/download-proxy', payload: { url: imageUrl }, isAuth: true });
+        const objectUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        const extMatch = imageUrl.match(/\.([a-zA-Z0-9]+)(?:[?#]|$)/);
+        const ext = extMatch ? `.${extMatch[1]}` : '';
+        const sanitizeFilename = (name: string) => name.replace(/[^a-z0-9_\-\.]/gi, '_').slice(0, 128);
+        link.download = `${sanitizeFilename(caption)}${ext}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(objectUrl);
+      } catch (proxyErr) {
+        console.error('Proxy download failed as well:', proxyErr);
+        // Fallback to opening in new tab if proxy also fails
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     }
   };
 
@@ -80,7 +123,7 @@ const AIImage: React.FC = () => {
     // Fetch generated images from backend and merge with sample data
     const fetchGenerated = async () => {
       try {
-        const resp = await apiRequest<any>({ url: '/chat/get-generated-images', method: 'GET' });
+        const resp = await apiRequest<any>({ url: '/chat/get-generated-images', method: 'GET', isAuth: true});
         const data = resp?.data;
         if (!data) return;
         const items = Array.isArray(data) ? data : [data];
@@ -95,32 +138,6 @@ const AIImage: React.FC = () => {
     };
 
     fetchGenerated();
-
-    // COMMENTED OUT: Backend API fetch implementation
-    /*
-    const fetchImages = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('YOUR_API_ENDPOINT_HERE');
-        const data = await response.json();
-        
-        // Assuming the response format is: { images: ["url1", "url2", ...] }
-        if (data.images && Array.isArray(data.images)) {
-          const imageDataArray: ImageData[] = data.images.map((url: string, index: number) => ({
-            url: url,
-            caption: Image ${index + 1} // You can customize caption logic here
-          }));
-          setImages(imageDataArray);
-        }
-      } catch (error) {
-        console.error('Error fetching images:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchImages();
-    */
   }, []);
 
   const handleGenerateImage = async () => {
