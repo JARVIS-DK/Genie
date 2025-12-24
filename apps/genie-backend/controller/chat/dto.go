@@ -62,3 +62,7 @@ type GenerateVideoDto struct {
 	Query      string `json:"query"`
 	VideoModel string `json:"video_model" default:"veo-3.1-generate-preview"`
 }
+
+type GenerateAudioDto struct {
+	Query string `json:"query"`
+}

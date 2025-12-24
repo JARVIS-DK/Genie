@@ -151,7 +151,7 @@ func (h *handler) GenerateImage(c echo.Context) error {
 		return shared.RespFailure(c, "Internal Server Error", err.Error())
 	}
 
-	return shared.RespSuccess(c, "Chat executed successfully", serviceResponse)
+	return shared.RespSuccess(c, "Image generated successfully", serviceResponse)
 }
 
 func (h *handler) GetGeneratedImages(c echo.Context) error {
@@ -186,7 +186,7 @@ func (h *handler) GenerateVideo(c echo.Context) error {
 		return shared.RespFailure(c, "Internal Server Error", err.Error())
 	}
 
-	return shared.RespSuccess(c, "Chat executed successfully", serviceResponse)
+	return shared.RespSuccess(c, "Video generated successfully", serviceResponse)
 }
 
 func (h *handler) GetGeneratedVideos(c echo.Context) error {
@@ -202,4 +202,24 @@ func (h *handler) GetGeneratedVideos(c echo.Context) error {
 
 	return shared.RespSuccess(c, "Generated Images Fetch Successful", serviceResponse)
 
+}
+
+func (h *handler) GenerateAudio(c echo.Context) error {
+
+	var metaData shared.ApiMetaData
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
+	var data GenerateAudioDto
+	err := c.Bind(&data)
+	if err != nil {
+		fmt.Println("error in binding request body", err)
+		return shared.RespFailure(c, "Invalid request body", err.Error())
+	}
+
+	serviceResponse, err := h.service.GenerateAudio(metaData, data)
+	if err != nil {
+		fmt.Println("error in executing chat", err)
+		return shared.RespFailure(c, "Internal Server Error", err.Error())
+	}
+
+	return shared.RespSuccess(c, "Audio generated successfully", serviceResponse)
 }

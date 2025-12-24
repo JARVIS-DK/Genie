@@ -6,6 +6,7 @@ import (
 	"time"
 
 	env "apps/genie-backend/config"
+	audioGeneration "apps/genie-backend/controller/chat/agents/audio_generation"
 	imageGeneration "apps/genie-backend/controller/chat/agents/image_generation"
 	videoGeneration "apps/genie-backend/controller/chat/agents/video_generation"
 	shared "libs/shared"
@@ -24,6 +25,7 @@ type Service interface {
 	GetGeneratedImages(metaData shared.ApiMetaData) (interface{}, error)
 	GenerateVideo(metaData shared.ApiMetaData, data GenerateVideoDto) (interface{}, error)
 	GetGeneratedVideos(metaData shared.ApiMetaData) (interface{}, error)
+	GenerateAudio(metaData shared.ApiMetaData, data GenerateAudioDto) (interface{}, error)
 }
 
 type service struct {
@@ -278,4 +280,23 @@ func (s *service) GetGeneratedVideos(metaData shared.ApiMetaData) (interface{}, 
 
 	return existingRecord, nil
 
+}
+
+func (s *service) GenerateAudio(metaData shared.ApiMetaData, data GenerateAudioDto) (interface{}, error) {
+
+	agentReq := audioGeneration.GoogleAudioGenerationRequest{
+		Query: data.Query,
+	}
+	resp, err := audioGeneration.GoogleAudioGeneration(agentReq, s.db, metaData)
+	if err != nil {
+		return nil, err
+	}
+	if !resp.Status {
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+		return nil, errors.New("audio generation failed")
+	}
+
+	return resp, nil
 }

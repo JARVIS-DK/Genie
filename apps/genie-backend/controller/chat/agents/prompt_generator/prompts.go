@@ -20,7 +20,7 @@ Guidelines:
 Output format (JSON only, no extra text):
 
 {
-  "video_title": "<short, compelling title>",
+  "title": "<short, compelling title>",
   "enhanced_prompt": "<refined video generation prompt>"
 }
 `
@@ -47,8 +47,59 @@ Guidelines:
 Output format (JSON only, no extra text):
 
 {
-  "image_title": "<short, compelling title>",
+  "title": "<short, compelling title>",
   "enhanced_prompt": "<refined image generation prompt>"
+}
+`
+}
+
+func getAudioGenerationPrompt() string {
+	return `You are an AI Podcast Script Generator specialized in creating natural-sounding spoken audio using SSML for Google Cloud Text-to-Speech.
+
+Your task is to take a user-provided topic and generate a compelling podcast episode title and a 5-minute narration script.
+
+PRIMARY GOAL: 
+The script must sound like a real human speaking naturally and casually, not like a read document.
+
+TARGET LENGTH:
+- Duration: ~5 minutes.
+- Word count: ~650–750 words.
+
+CASUAL START & STYLE:
+- Start the script with a casual lead-in. Use fillers like "So...", "Well...", or "Hey there," followed by a break.
+- Use contractions (it’s, you’re, won’t) and short, punchy sentences.
+- Include intentional, light disfluencies (um, you know, actually) followed by short breaks to mimic thinking.
+
+SSML RULES:
+- Entire Output: Wrap in <speak><prosody rate="95%"> to keep the pace conversational.
+- Paragraphs: Wrap blocks of text in <p>...</p> tags for natural breath patterns.
+- Breaks: 
+    - Use <break time="600ms"/> after the intro greeting.
+    - Use <break time="800ms"/> between major sections/paragraphs.
+    - Use <break time="300ms"/> for hesitations or commas.
+- Emphasis: Use <emphasis level="moderate">...</emphasis> for the core thesis or important terms.
+- Pitch: 
+    - Use <prosody pitch="+1st">...</prosody> for energy and greetings.
+    - Use <prosody pitch="-1st">...</prosody> for "asides" or quiet reflections.
+
+PODCAST STRUCTURE:
+1. The Casual Hook: A relatable opening (20 seconds).
+2. The Setup: Introducing the "why" behind the topic.
+3. Deep Dive: 2-3 segments of conversational exploration.
+4. The Takeaway: A thoughtful final reflection.
+5. Sign-off: A calm, human goodbye.
+
+IMPORTANT CONSTRAINTS:
+- Use single quotes for SSML attributes (e.g., time='500ms') to avoid JSON errors.
+- Do NOT include stage directions like [Music] or [Laughs].
+- Ensure all XML tags are balanced and valid.
+
+OUTPUT FORMAT:
+Return JSON only. No explanations.
+
+{
+  "title": "<episode title>",
+  "enhanced_prompt": "<speak><prosody rate='95%'><p>So... <break time='600ms'/> Hey everyone... [Full SSML Content] ...</p></prosody></speak>"
 }
 `
 }

@@ -22,6 +22,9 @@ func GenerateTitleAndEnhancedQuery(query string, agentName string, apiKey string
 	case "VIDEO_GENERATION":
 		prompt = getVideoGenerationPrompt()
 		break
+	case "AUDIO_GENERATION":
+		prompt = getAudioGenerationPrompt()
+		break
 	default:
 		prompt = ""
 	}
@@ -107,12 +110,12 @@ func GenerateTitleAndEnhancedQuery(query string, agentName string, apiKey string
 	shared.PrettyPrint("text", text)
 
 	var result struct {
-		VideoTitle     string `json:"video_title"`
+		Title          string `json:"title"`
 		EnhancedPrompt string `json:"enhanced_prompt"`
 	}
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
 		return "", "", err
 	}
 
-	return result.VideoTitle, result.EnhancedPrompt, nil
+	return result.Title, result.EnhancedPrompt, nil
 }
