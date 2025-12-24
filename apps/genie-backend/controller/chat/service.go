@@ -223,7 +223,7 @@ func (s *service) GetGeneratedImages(metaData shared.ApiMetaData) (interface{}, 
 		"user_id": metaData.UserId,
 	}
 
-	existingRecord, err := s.db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], generatedImageHistoryCollectionName, filterQuery)
+	existingRecord, err := s.db.GetMany(env.GlobalEnv["MONGO_CREDENTIAL"], generatedImageHistoryCollectionName, filterQuery)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, fmt.Errorf("failed to get chat history: %v", err.Error())
 	}
@@ -267,7 +267,7 @@ func (s *service) GetGeneratedVideos(metaData shared.ApiMetaData) (interface{}, 
 		"user_id": metaData.UserId,
 	}
 
-	existingRecord, err := s.db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], generatedVideoHistoryCollectionName, filterQuery)
+	existingRecord, err := s.db.GetMany(env.GlobalEnv["MONGO_CREDENTIAL"], generatedVideoHistoryCollectionName, filterQuery)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, fmt.Errorf("failed to get chat history: %v", err.Error())
 	}

@@ -20,7 +20,7 @@ func GoogleVideoGeneration(data GoogleVideoGenerationRequest, db shared.MongoRep
 
 	apiKeysCollectionName := model.CollectionName["API_KEYS"]
 	filterQuery := map[string]interface{}{
-		"code": "GOOGLE_TEXT_TO_IMAGE_API_KEY",
+		"code": "GOOGLE_TEXT_TO_VIDEO_API_KEY",
 	}
 	existingRecord, err := db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], apiKeysCollectionName, filterQuery)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
