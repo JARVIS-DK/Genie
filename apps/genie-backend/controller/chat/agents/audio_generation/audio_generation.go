@@ -12,6 +12,7 @@ import (
 	"time"
 
 	env "apps/genie-backend/config"
+	imageGeneration "apps/genie-backend/controller/chat/agents/image_generation"
 	promptGenerator "apps/genie-backend/controller/chat/agents/prompt_generator"
 
 	authcredentials "cloud.google.com/go/auth/credentials"
@@ -46,6 +47,38 @@ func GoogleAudioGeneration(data GoogleAudioGenerationRequest, db shared.MongoRep
 	title, enhancedQuery, err := promptGenerator.GenerateTitleAndEnhancedQuery(data.Query, "AUDIO_GENERATION", apiKey)
 	if err != nil {
 		return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+	}
+
+	imageRequest := imageGeneration.GeminiImageGenerationRequest{
+		Query:          title,
+		ImageModel:     "gemini-3-pro-image-preview",
+		ImageSize:      "1K",
+		AspectRatio:    "1:1",
+		NumberofImages: 1,
+	}
+
+	imageURL := ""
+	imageResponse, err := imageGeneration.GeminiImageGeneration(imageRequest, db, metaData)
+	if err != nil {
+		// return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+	}
+
+	if imageResponse.Status && imageResponse.Data != nil {
+		dataMap := imageResponse.Data
+		if urlsAny, ok := dataMap["image_urls"]; ok {
+			switch urls := urlsAny.(type) {
+			case []string:
+				if len(urls) > 0 {
+					imageURL = urls[0]
+				}
+			case []interface{}:
+				if len(urls) > 0 {
+					if first, ok := urls[0].(string); ok {
+						imageURL = first
+					}
+				}
+			}
+		}
 	}
 
 	googleServiceAccountURL, ok := env.GlobalEnv["GOOGLE_SERVICE_ACCOUNT_URL"].(string)
@@ -171,6 +204,7 @@ func GoogleAudioGeneration(data GoogleAudioGenerationRequest, db shared.MongoRep
 
 	response := map[string]interface{}{
 		"audio_url":   publicURL,
+		"image_url":   imageURL,
 		"audio_title": title,
 	}
 
