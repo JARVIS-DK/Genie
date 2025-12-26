@@ -6,6 +6,7 @@ type ExecuteRequestDto struct {
 	Query          string `json:"query" bson:"query"`
 	ConversationId string `json:"conversation_id" bson:"conversation_id"`
 	Files          []File `json:"files" bson:"files"`
+	OptionalAgent  string `json:"optional_agent" bson:"optional_agent"`
 }
 
 type File struct {

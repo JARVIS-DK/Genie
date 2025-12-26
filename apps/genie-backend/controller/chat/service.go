@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -21,7 +22,7 @@ import (
 )
 
 type Service interface {
-	Execute(metaData shared.ApiMetaData, data ExecuteRequestDto, QueryParam string) (interface{}, error)
+	Execute(metaData shared.ApiMetaData, data ExecuteRequestDto) (interface{}, error)
 	GetConversations(metaData shared.ApiMetaData) (interface{}, error)
 	GetChatHistory(metaData shared.ApiMetaData, conversationId string) (interface{}, error)
 	RenameConversation(metaData shared.ApiMetaData, data RenameConversationRequestDto) (interface{}, error)
@@ -53,29 +54,54 @@ func NewService() *service {
 	return newServiceObj
 }
 
-func (s *service) Execute(metaData shared.ApiMetaData, data ExecuteRequestDto, QueryParam string) (interface{}, error) {
+func (s *service) Execute(metaData shared.ApiMetaData, data ExecuteRequestDto) (interface{}, error) {
 
 	var response ExecuteResponseDto
 
-	resp, err := prompt_generator.Gemini(data.Query, "GENERAL_CHAT_BOT", "AIzaSyDlKweSy_t6GY-BW_1je6FLPVjuZNucRPc")
+	apiKeyCollectionName := model.CollectionName["API_KEYS"]
+	apiKeyFilterQuery := map[string]interface{}{
+		"code": "GENERAL_CHAT_BOT",
+	}
+
+	dbResp, err := s.db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], apiKeyCollectionName, apiKeyFilterQuery)
 	if err != nil {
 		return nil, err
 	}
-	response.Message = resp
-	// if QueryParam == "GENERATE_IMAGE" {
-	// 	imageUrl, err := GoogleTextToImage(data.Query, s.db)
-	// 	if err != nil {
-	// 		fmt.Println("error in generating image", err)
-	// 		return nil, err
-	// 	}
-	// 	response.Message = fmt.Sprintf("![image](%s)", imageUrl)
-	// } else if QueryParam == "GENERATE_CODE" {
-	// 	// code, err := GoogleTextToCode(data.Query)
-	// 	// if err != nil {
-	// 	// 	return nil, err
-	// 	// }
-	// 	// response.Message = code
-	// }
+	var dbRespMap map[string]interface{}
+	shared.JsonMarshaller(dbResp, &dbRespMap)
+	apiKey := dbRespMap["api_key"].(string)
+
+	resp, err := prompt_generator.Gemini(data.Query, "GENERAL_CHAT_BOT", apiKey)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp := map[string]interface{}{}
+	err = json.Unmarshal([]byte(resp), &jsonResp)
+	if err != nil {
+		return nil, err
+	}
+	if isGeneral, ok := jsonResp["is_greeting"].(bool); ok && isGeneral {
+		if msg, ok := jsonResp["message"].(string); ok && msg != "" {
+			response.Message = msg
+		} else {
+			response.Message = "Super Agent not able to respond. Please try again later."
+		}
+	} else {
+
+		selectedAgents := DecomposeAgentSelection(data.Query, data.OptionalAgent, s.db)
+		if selectedAgents == nil {
+			return nil, err
+		}
+
+		agentsExecutedResults, err := ExecuteAgents(data.Query, selectedAgents, s.db, metaData)
+		if err != nil {
+			return nil, err
+		}
+
+		response.Message = fmt.Sprintf("%s\n\n%s", strings.Join(selectedAgents, ", "), agentsExecutedResults)
+
+	}
 
 	go UpdateConversation(metaData, data, response)
 	go UpdateChatHistory(metaData, data, response)

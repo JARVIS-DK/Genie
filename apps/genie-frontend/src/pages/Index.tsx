@@ -189,7 +189,7 @@ const Index = () => {
     }
   };
 
-  const sendApiRequest = async (userMessage: string, files?: FileAttachment[]) => {
+  const sendApiRequest = async (userMessage: string, files?: FileAttachment[], optionalAgent?: string) => {
     setIsTyping(true);
 
     try {
@@ -211,6 +211,7 @@ const Index = () => {
           query: userMessage,
           conversation_id: chat.conversationId,
           files: files || [],
+          optional_agent: optionalAgent,
         },
       });
 
@@ -312,7 +313,7 @@ const Index = () => {
     }
   };
 
-  const handleSendMessage = (content: string, files?: FileAttachment[]) => {
+  const handleSendMessage = (content: string, files?: FileAttachment[], optional_agent?: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -322,7 +323,7 @@ const Index = () => {
     };
 
     setChats((prev) => prev.map((c) => (c.id === currentChatId ? { ...c, messages: [...c.messages, userMessage] } : c)));
-    sendApiRequest(content, files);
+    sendApiRequest(content, files, optional_agent);
   };
 
   const handleNewChat = () => {

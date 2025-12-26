@@ -436,7 +436,7 @@ const CustomDivider: React.FC = () => (
 
 // Main PromptInputBox Component
 interface PromptInputBoxProps {
-  onSend?: (message: string, files?: File[]) => void;
+  onSend?: (message: string, files?: File[], optionalAgent?: string) => void;
   isLoading?: boolean;
   placeholder?: string;
   className?: string;
@@ -531,12 +531,11 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
 
   const handleSubmit = () => {
     if (input.trim() || files.length > 0) {
-      let messagePrefix = "";
-      if (showSearch) messagePrefix = "[Search: ";
-      else if (showThink) messagePrefix = "[Think: ";
-      else if (showCanvas) messagePrefix = "[Canvas: ";
-      const formattedInput = messagePrefix ? `${messagePrefix}${input}]` : input;
-      onSend?.(formattedInput, files);
+      let optionalAgent = "";
+      if (showSearch) optionalAgent = "WEB_SEARCH";
+      else if (showThink) optionalAgent = "DEEP_RESEARCH";
+      const formattedInput = input;
+      onSend?.(formattedInput, files, optionalAgent);
       setInput("");
       setFiles([]);
       setFilePreviews({});

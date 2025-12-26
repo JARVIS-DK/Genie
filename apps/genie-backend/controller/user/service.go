@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -76,6 +77,9 @@ func (s *service) Register(data UserRegisterRequestDto, metaData shared.ApiMetaD
 func (s *service) GetUser(metaData shared.ApiMetaData, query map[string]interface{}) (interface{}, error) {
 	collectionName := shared.MongoCollectionName["USERS"]
 	resp, err := s.db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], collectionName, query)
+	if resp == mongo.ErrNoDocuments {
+		return nil, errors.New("User not found")
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +90,9 @@ func (s *service) Login(metaData shared.ApiMetaData, data UserLoginRequestDto, q
 	collectionName := shared.MongoCollectionName["USERS"]
 
 	userData, err := s.db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], collectionName, query)
+	if err == mongo.ErrNoDocuments {
+		return nil, errors.New("User not found")
+	}
 	if err != nil {
 		return nil, err
 	}

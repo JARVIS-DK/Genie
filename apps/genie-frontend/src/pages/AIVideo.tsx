@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from "@/components/ui/button";
 import { Play, Loader2, X, Bot, PanelLeft, Clapperboard } from 'lucide-react';
 import { apiRequest } from '../services/api_request';
+import AIMediaPopup from "@/components/AIMediaPopup";
+import AIMediaCard from "@/components/AIMediaCard";
 
 interface PageProps {
   isSidebarOpen?: boolean;
@@ -46,7 +48,7 @@ export default function AIVideoPage({ isSidebarOpen, onToggleSidebar }: PageProp
       }
 
       const id = `generated-${Date.now()}`;
-      const thumbnailUrl = `https://source.unsplash.com/random/640x360/?video,${id}`;
+      const thumbnailUrl = '/no_preview_image.png';
 
       const newVideo: VideoItem = {
         id,
@@ -96,7 +98,7 @@ export default function AIVideoPage({ isSidebarOpen, onToggleSidebar }: PageProp
             const videoUrl: string | undefined = it.video_url;
             if (!videoUrl) return null;
             const title = it.video_title || 'AI Generated Video';
-            const thumbnailUrl = `https://source.unsplash.com/random/640x360/?video,${id}`;
+            const thumbnailUrl = '/no_preview_image.png';
 
             return {
               id,
@@ -137,65 +139,27 @@ export default function AIVideoPage({ isSidebarOpen, onToggleSidebar }: PageProp
         </div>
       </header>
 
-      <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-gray-900 to-black">
-        <div className="absolute top-5 left-4 z-10">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggleSidebar}
-            className="h-8 w-8 hover:bg-muted/50 bg-background/80 backdrop-blur-sm border border-border shadow-sm"
-          >
-            <PanelLeft className="h-4 w-4" />
-          </Button>
-        </div>
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1 relative overflow-hidden">
+          <div className="absolute top-5 left-4 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleSidebar}
+              className="h-8 w-8 hover:bg-muted/50 bg-background/80 backdrop-blur-sm border border-border shadow-sm"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </Button>
+          </div>
 
-        <div className="h-full overflow-y-auto p-8 relative">
+          <div className="h-full overflow-y-auto p-8 relative">
           {/* Video modal */}
-          <AnimatePresence>
-            {selectedVideo && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-                  onClick={() => setSelectedVideo(null)}
-                />
-                <motion.div
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.95, opacity: 0 }}
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="w-full max-w-3xl bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl overflow-hidden border border-gray-700">
-                    <div className="flex items-center justify-between p-4 border-b border-gray-700">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Clapperboard className="h-5 w-5 text-primary" />
-                        <h3 className="text-sm font-semibold truncate" title={selectedVideo.title}>
-                          {selectedVideo.title}
-                        </h3>
-                      </div>
-                      <button
-                        onClick={() => setSelectedVideo(null)}
-                        className="p-1 rounded-full hover:bg-gray-800 transition-colors"
-                        aria-label="Close"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    </div>
-                    <div className="bg-black">
-                      <video
-                        src={selectedVideo.videoUrl}
-                        controls
-                        className="w-full h-auto max-h-[70vh]"
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+          <AIMediaPopup
+            open={!!selectedVideo}
+            title={selectedVideo?.title ?? ''}
+            videoUrl={selectedVideo?.videoUrl}
+            onClose={() => setSelectedVideo(null)}
+          />
 
           {/* Create Video Chat Box */}
           <AnimatePresence>
@@ -245,7 +209,14 @@ export default function AIVideoPage({ isSidebarOpen, onToggleSidebar }: PageProp
                           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={isGenerating}
                         >
-                          {isGenerating ? 'Generating…' : 'Generate Video'}
+                          {isGenerating ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Generating…</span>
+                            </span>
+                          ) : (
+                            'Generate Video'
+                          )}
                         </button>
                       </div>
                     </div>
@@ -257,9 +228,33 @@ export default function AIVideoPage({ isSidebarOpen, onToggleSidebar }: PageProp
 
           <div className="max-w-7xl mx-auto h-full">
             {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              </div>
+              <>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-primary/10 animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="h-5 w-56 bg-gray-700/60 rounded animate-pulse" />
+                      <div className="h-4 w-64 bg-gray-700/40 rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="h-9 w-24 bg-blue-600/60 rounded-lg animate-pulse" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                  {Array.from({ length: 10 }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="relative bg-gray-800/50 rounded-lg overflow-hidden shadow-lg animate-pulse"
+                    >
+                      <div className="aspect-square bg-gray-700/80" />
+                      <div className="p-4 space-y-2">
+                        <div className="h-4 w-3/4 bg-gray-700/70 rounded" />
+                        <div className="h-3 w-1/2 bg-gray-700/50 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : !isLoading && videos.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center gap-4">
                 <div className="flex flex-col items-center gap-3">
@@ -280,8 +275,18 @@ export default function AIVideoPage({ isSidebarOpen, onToggleSidebar }: PageProp
               </div>
             ) : (
               <>
-                <div className="flex justify-between items-center mb-8">
-                  <h1 className="text-4xl font-bold">AI Generated Videos</h1>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Clapperboard className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-semibold text-white">AI Generated Videos</h2>
+                      <p className="text-muted-foreground text-sm">
+                        Explore and watch AI generated videos in your library.
+                      </p>
+                    </div>
+                  </div>
                   <button
                     onClick={() => setShowChatBox(true)}
                     className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
@@ -308,39 +313,37 @@ export default function AIVideoPage({ isSidebarOpen, onToggleSidebar }: PageProp
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <div className="relative aspect-video">
-                        <img
-                          src={video.thumbnailUrl}
-                          alt={video.title}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = `https://source.unsplash.com/random/640x360/?video,${video.id}`;
-                          }}
-                        />
-                        {hoveredCard === video.id && (
-                          <motion.div
-                            className="absolute inset-0 bg-black/60 flex items-center justify-center"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                          >
-                            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                              <Play className="text-white h-6 w-6 ml-1" fill="white" />
-                            </div>
-                          </motion.div>
-                        )}
-                      </div>
-                      <div className="p-4">
+                      <AIMediaCard
+                        imageUrl={video.thumbnailUrl}
+                        fallbackImageUrl="/no_preview_image.png"
+                        title={video.title}
+                        aspect="square"
+                        outerClassName=""
+                        hoverOverlay={
+                          hoveredCard === video.id ? (
+                            <motion.div
+                              className="absolute inset-0 bg-black/60 flex items-center justify-center"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                            >
+                              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                                <Play className="text-white h-6 w-6 ml-1" fill="white" />
+                              </div>
+                            </motion.div>
+                          ) : null
+                        }
+                      >
                         <h3 className="font-semibold text-lg truncate" title={video.title}>
                           {video.title}
                         </h3>
                         <p className="text-gray-400 text-sm truncate">{video.duration}</p>
-                      </div>
+                      </AIMediaCard>
                     </motion.div>
                   ))}
                 </div>
               </>
             )}
+          </div>
           </div>
         </div>
       </div>

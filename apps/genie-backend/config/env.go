@@ -18,5 +18,6 @@ var GlobalEnv = map[string]interface{}{
 	"GOOGLE_SERVICE_ACCOUNT_URL":       "https://storage.googleapis.com/genie-blob-storage/json/genie-654.json",
 	"GOOGLE_CLOUD_STORAGE_BUCKET_NAME": "genie-blob-storage",
 
-	"GOOGLE_GEMINI_CHAT_MODEL": "gemini-3-pro-preview",
+	"GOOGLE_GEMINI_CHAT_MODEL":         "gemini-3-pro-preview",
+	"GOOGLE_GEMINI_GENERAL_CHAT_MODEL": "gemini-2.5-flash",
 }

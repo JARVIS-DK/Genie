@@ -43,7 +43,7 @@ func (h *handler) Execute(c echo.Context) error {
 	}
 
 	// serviceResponse, err := h.service.Execute(metaData, data)
-	serviceResponse, err := h.service.Execute(metaData, data, "GENERATE_IMAGE")
+	serviceResponse, err := h.service.Execute(metaData, data)
 	if err != nil {
 		fmt.Println("error in executing chat", err)
 		return shared.RespFailure(c, "Internal Server Error", err.Error())

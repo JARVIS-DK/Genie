@@ -284,11 +284,19 @@ func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRep
 
 	for index, image := range imagesURLs {
 		collectionName := model.CollectionName["IMAGE_GENERATION_HISTORY"]
+
+		// If only one image was generated, use the base title without index.
+		// Otherwise, append an index suffix.
+		imageTitle := title
+		if len(imagesURLs) > 1 {
+			imageTitle = fmt.Sprintf("%v - %v", title, index)
+		}
+
 		createPayload := map[string]interface{}{
 			"image_url":      image,
 			"user_query":     data.Query,
 			"enhanced_query": enhancedQuery,
-			"image_title":    fmt.Sprintf("%v - %v", title, index),
+			"image_title":    imageTitle,
 			"user_id":        metaData.UserId,
 			"created_at":     time.Now().UTC(),
 		}

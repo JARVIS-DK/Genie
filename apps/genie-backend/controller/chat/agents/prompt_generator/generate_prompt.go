@@ -25,6 +25,9 @@ func GenerateTitleAndEnhancedQuery(query string, agentName string, apiKey string
 	case "AUDIO_GENERATION":
 		prompt = getAudioGenerationPrompt()
 		break
+	case "PARAMETER_GETTING":
+		prompt = getParameterGettingPrompt()
+		break
 	default:
 		prompt = ""
 	}

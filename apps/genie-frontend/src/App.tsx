@@ -13,7 +13,7 @@ import { Provider } from "react-redux";
 import { store, persistor } from "@/store";
 import { PersistGate } from "redux-persist/integration/react";
 import AIImage from "./pages/AIImage";
-
+import Snowfall from "react-snowfall";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +25,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+          
+            <Snowfall />
             <Routes>
               <Route
                 path="/"

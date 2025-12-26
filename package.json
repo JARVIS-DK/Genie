@@ -108,6 +108,7 @@
     "react-redux": "^9.2.0",
     "react-resizable-panels": "^2.1.9",
     "react-router-dom": "^6.30.1",
+    "react-snowfall": "^2.4.0",
     "react-toast": "^1.0.3",
     "recharts": "^2.15.4",
     "redux-persist": "^6.0.0",

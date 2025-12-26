@@ -38,7 +38,7 @@ type ChatInterfaceProps = {
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
   onNewChat: () => void;
-  onSendMessage: (content: string, files?: FileAttachment[]) => void;
+  onSendMessage: (content: string, files?: FileAttachment[], optional_agent?: string) => void;
 };
 
 export const ChatInterface = ({
@@ -97,7 +97,7 @@ export const ChatInterface = ({
   };
 
   // Adapter to map ChatInput's File[] to FileAttachment[] expected by onSendMessage
-  const handleOnSendFromInput = (content: string, files?: File[]) => {
+  const handleOnSendFromInput = (content: string, files?: File[], optionalAgent?: string) => {
     const attachments = files?.map((file) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       name: file.name,
@@ -105,7 +105,7 @@ export const ChatInterface = ({
       type: file.type,
       path: URL.createObjectURL(file),
     })) as FileAttachment[] | undefined;
-    onSendMessage(content, attachments);
+    onSendMessage(content, attachments, optionalAgent);
   };
 
   return (
