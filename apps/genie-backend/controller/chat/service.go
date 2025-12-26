@@ -3,6 +3,10 @@ package chat
 import (
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	env "apps/genie-backend/config"
@@ -26,6 +30,8 @@ type Service interface {
 	GenerateVideo(metaData shared.ApiMetaData, data GenerateVideoDto) (interface{}, error)
 	GetGeneratedVideos(metaData shared.ApiMetaData) (interface{}, error)
 	GenerateAudio(metaData shared.ApiMetaData, data GenerateAudioDto) (interface{}, error)
+	// ProxyDownload fetches a remote resource and returns its bytes, content type and filename
+	ProxyDownload(metaData shared.ApiMetaData, url string) ([]byte, string, string, error)
 }
 
 type service struct {
@@ -299,4 +305,63 @@ func (s *service) GenerateAudio(metaData shared.ApiMetaData, data GenerateAudioD
 	}
 
 	return resp, nil
+}
+
+// ProxyDownload fetches a remote resource and returns its bytes, content type and filename
+func (s *service) ProxyDownload(metaData shared.ApiMetaData, url string) ([]byte, string, string, error) {
+	// HTTP GET the remote URL
+	client := &http.Client{Timeout: 30 * time.Second}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, "", "", err
+	}
+	// Set a sensible user agent
+	req.Header.Set("User-Agent", "Genie-Download-Proxy/1.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, "", "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", "", fmt.Errorf("remote server returned status %d", resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	contentDisposition := resp.Header.Get("Content-Disposition")
+	filename := deriveFilenameFromHeadersOrUrl(contentDisposition, url)
+
+	if filename == "" {
+		filename = fmt.Sprintf("download_%d", time.Now().Unix())
+	}
+
+	return data, contentType, filename, nil
+}
+
+func deriveFilenameFromHeadersOrUrl(contentDisposition, url string) string {
+	// Try to parse filename from Content-Disposition if present
+	if contentDisposition != "" {
+		// naive parse: look for filename="..."
+		re := regexp.MustCompile(`filename\*?=\"?([^;\"]+)\"?`)
+		m := re.FindStringSubmatch(contentDisposition)
+		if len(m) > 1 {
+			return strings.Trim(m[1], `"`)
+		}
+	}
+
+	// Fallback to filename from URL path
+	parts := strings.Split(url, "/")
+	if len(parts) > 0 {
+		last := parts[len(parts)-1]
+		if last != "" {
+			return last
+		}
+	}
+	return ""
 }

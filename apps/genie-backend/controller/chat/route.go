@@ -23,5 +23,8 @@ func (h *handler) Route(g *echo.Group) {
 	g.GET("/get-generated-images", h.GetGeneratedImages, shared.AuthorizationCheck(authKey, mongoCredential))
 	g.POST("/execute/generate-video", h.GenerateVideo, shared.AuthorizationCheck(authKey, mongoCredential))
 	g.GET("/get-generated-videos", h.GetGeneratedVideos, shared.AuthorizationCheck(authKey, mongoCredential))
+
+	// Proxy download endpoint to avoid CORS issues when clients download remote images
+	g.POST("/download-proxy", h.DownloadProxy, shared.AuthorizationCheck(authKey, mongoCredential))
 	g.POST("/execute/generate-audio", h.GenerateAudio, shared.AuthorizationCheck(authKey, mongoCredential))
 }

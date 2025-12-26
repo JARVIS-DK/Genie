@@ -223,3 +223,29 @@ func (h *handler) GenerateAudio(c echo.Context) error {
 
 	return shared.RespSuccess(c, "Audio generated successfully", serviceResponse)
 }
+
+// DownloadProxy streams a remote image through the backend so front-end can trigger a direct download without CORS restrictions.
+func (h *handler) DownloadProxy(c echo.Context) error {
+	var body struct {
+		Url string `json:"url"`
+	}
+	if err := c.Bind(&body); err != nil {
+		return shared.RespFailure(c, "Invalid request body", err.Error())
+	}
+	if body.Url == "" {
+		return shared.RespFailure(c, "url is required", nil)
+	}
+
+	var metaData shared.ApiMetaData
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
+
+	content, contentType, filename, err := h.service.ProxyDownload(metaData, body.Url)
+	if err != nil {
+		fmt.Println("error in proxy download", err)
+		return shared.RespFailure(c, "Failed to fetch remote resource", err.Error())
+	}
+
+	// Set attachment header so browser downloads the file
+	c.Response().Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	return c.Blob(200, contentType, content)
+}

@@ -13,6 +13,7 @@ import RequireAuth from "@/components/RequireAuth";
 import { Provider } from "react-redux";
 import { store, persistor } from "@/store";
 import { PersistGate } from "redux-persist/integration/react";
+import AIImage from "./pages/AIImage";
 
 
 const queryClient = new QueryClient();
@@ -63,6 +64,14 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <MusicPlayerPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/AIImage"
+                element={
+                  <RequireAuth>
+                    <AIImage/>
                   </RequireAuth>
                 }
               />
