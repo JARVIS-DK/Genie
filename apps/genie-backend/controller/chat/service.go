@@ -12,6 +12,7 @@ import (
 	env "apps/genie-backend/config"
 	audioGeneration "apps/genie-backend/controller/chat/agents/audio_generation"
 	imageGeneration "apps/genie-backend/controller/chat/agents/image_generation"
+	prompt_generator "apps/genie-backend/controller/chat/agents/prompt_generator"
 	videoGeneration "apps/genie-backend/controller/chat/agents/video_generation"
 	shared "libs/shared"
 	model "libs/shared/db_connectors/model"
@@ -30,6 +31,7 @@ type Service interface {
 	GenerateVideo(metaData shared.ApiMetaData, data GenerateVideoDto) (interface{}, error)
 	GetGeneratedVideos(metaData shared.ApiMetaData) (interface{}, error)
 	GenerateAudio(metaData shared.ApiMetaData, data GenerateAudioDto) (interface{}, error)
+	GetGeneratedAudios(metaData shared.ApiMetaData) (interface{}, error)
 	// ProxyDownload fetches a remote resource and returns its bytes, content type and filename
 	ProxyDownload(metaData shared.ApiMetaData, url string) ([]byte, string, string, error)
 }
@@ -54,20 +56,26 @@ func NewService() *service {
 func (s *service) Execute(metaData shared.ApiMetaData, data ExecuteRequestDto, QueryParam string) (interface{}, error) {
 
 	var response ExecuteResponseDto
-	if QueryParam == "GENERATE_IMAGE" {
-		imageUrl, err := GoogleTextToImage(data.Query, s.db)
-		if err != nil {
-			fmt.Println("error in generating image", err)
-			return nil, err
-		}
-		response.Message = fmt.Sprintf("![image](%s)", imageUrl)
-	} else if QueryParam == "GENERATE_CODE" {
-		// code, err := GoogleTextToCode(data.Query)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// response.Message = code
+
+	resp, err := prompt_generator.Gemini(data.Query, "GENERAL_CHAT_BOT", "AIzaSyDlKweSy_t6GY-BW_1je6FLPVjuZNucRPc")
+	if err != nil {
+		return nil, err
 	}
+	response.Message = resp
+	// if QueryParam == "GENERATE_IMAGE" {
+	// 	imageUrl, err := GoogleTextToImage(data.Query, s.db)
+	// 	if err != nil {
+	// 		fmt.Println("error in generating image", err)
+	// 		return nil, err
+	// 	}
+	// 	response.Message = fmt.Sprintf("![image](%s)", imageUrl)
+	// } else if QueryParam == "GENERATE_CODE" {
+	// 	// code, err := GoogleTextToCode(data.Query)
+	// 	// if err != nil {
+	// 	// 	return nil, err
+	// 	// }
+	// 	// response.Message = code
+	// }
 
 	go UpdateConversation(metaData, data, response)
 	go UpdateChatHistory(metaData, data, response)
@@ -305,6 +313,27 @@ func (s *service) GenerateAudio(metaData shared.ApiMetaData, data GenerateAudioD
 	}
 
 	return resp, nil
+}
+
+func (s *service) GetGeneratedAudios(metaData shared.ApiMetaData) (interface{}, error) {
+
+	generatedVideoHistoryCollectionName := model.CollectionName["AUDIO_GENERATION_HISTORY"]
+
+	filterQuery := map[string]interface{}{
+		"user_id": metaData.UserId,
+	}
+
+	existingRecord, err := s.db.GetMany(env.GlobalEnv["MONGO_CREDENTIAL"], generatedVideoHistoryCollectionName, filterQuery)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, fmt.Errorf("failed to get chat history: %v", err.Error())
+	}
+
+	if existingRecord == nil {
+		return nil, nil
+	}
+
+	return existingRecord, nil
+
 }
 
 // ProxyDownload fetches a remote resource and returns its bytes, content type and filename

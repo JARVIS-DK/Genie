@@ -224,6 +224,21 @@ func (h *handler) GenerateAudio(c echo.Context) error {
 	return shared.RespSuccess(c, "Audio generated successfully", serviceResponse)
 }
 
+func (h *handler) GetGeneratedAudios(c echo.Context) error {
+
+	var metaData shared.ApiMetaData
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
+
+	serviceResponse, err := h.service.GetGeneratedAudios(metaData)
+	if err != nil {
+		fmt.Println("error in geting audios", err)
+		return shared.RespFailure(c, "Internal Server Error", err.Error())
+	}
+
+	return shared.RespSuccess(c, "Generated Audios Fetch Successful", serviceResponse)
+
+}
+
 // DownloadProxy streams a remote image through the backend so front-end can trigger a direct download without CORS restrictions.
 func (h *handler) DownloadProxy(c echo.Context) error {
 	var body struct {

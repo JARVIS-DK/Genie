@@ -27,4 +27,5 @@ func (h *handler) Route(g *echo.Group) {
 	// Proxy download endpoint to avoid CORS issues when clients download remote images
 	g.POST("/download-proxy", h.DownloadProxy, shared.AuthorizationCheck(authKey, mongoCredential))
 	g.POST("/execute/generate-audio", h.GenerateAudio, shared.AuthorizationCheck(authKey, mongoCredential))
+	g.GET("/get-generated-audios", h.GetGeneratedAudios, shared.AuthorizationCheck(authKey, mongoCredential))
 }

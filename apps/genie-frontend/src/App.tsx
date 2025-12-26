@@ -7,7 +7,6 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import AIMusicPage from "./pages/AIMusic";
 import MusicPlayerPage from "./pages/MusicPlayer";
 import RequireAuth from "@/components/RequireAuth";
 import { Provider } from "react-redux";
@@ -55,7 +54,15 @@ const App = () => (
                 path="/ai/music"
                 element={
                   <RequireAuth>
-                    <AIMusicPage />
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/video"
+                element={
+                  <RequireAuth>
+                    <Index />
                   </RequireAuth>
                 }
               />

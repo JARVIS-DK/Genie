@@ -8,7 +8,7 @@ interface PageProps {
 
 export default function AISlidesPage({ isSidebarOpen, onToggleSidebar }: PageProps) {
   // Replace this with the static URL you want to display in fullscreen
-  const IFRAME_URL = 'https://theuselessweb.com/';
+  const IFRAME_URL = 'https://www.openstreetmap.org/export/embed.html?bbox=-0.004017949104309083%2C51.47612752641776%2C0.00030577182769775396%2C51.478569861898606&amp;layer=mapnik';
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden">
@@ -43,7 +43,7 @@ export default function AISlidesPage({ isSidebarOpen, onToggleSidebar }: PagePro
             src={IFRAME_URL}
             title="AI Slides - Fullscreen"
             className="absolute inset-0 w-full h-full border-0"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            sandbox="allow-scripts allow-same-origin allow-forms"
             allowFullScreen
           />
         </div>

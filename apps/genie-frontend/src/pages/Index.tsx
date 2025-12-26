@@ -9,7 +9,8 @@ import AISlidesPage from "./AISlides";
 import AIImagePage from "./AIImage";
 import AIChatDemoPage from "./AIChat";
 import AIDeveloperPage from "./AIDeveloper";
-import AIMusicPage from "./AIMusic";
+import AIPodsPage from "./AIMusic";
+import AIVideoPage from "./AIVideo";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 interface Chat {
@@ -197,8 +198,11 @@ const Index = () => {
       try { localStorage.setItem('last_conversation_id', chat.conversationId); } catch {}
 
       const response = await apiRequest<{
-        meta?: { status: boolean; message: string };
-        data?: any;
+        meta: { status: boolean; message: string };
+        data: {
+          message: string;
+          agents_executed_results: any[] | null;
+        };
       }>({
         url: "/chat/execute",
         method: "POST",
@@ -210,13 +214,9 @@ const Index = () => {
         },
       });
 
-      const inner = (response?.data?.response
-        ? response?.data
-        : response?.data?.data?.response
-        ? response?.data?.data
-        : (response as any)) || {};
+      const inner = response?.data || {};
 
-      const rawAgentResults = inner?.response?.agent_executed_results ?? [];
+      const rawAgentResults = inner?.agents_executed_results ?? [];
       const agentResults: AgentExecutedResult[] = Array.isArray(rawAgentResults)
         ? rawAgentResults.map((ar: any) => ({
             agent_id: ar?.agent_id,
@@ -234,8 +234,7 @@ const Index = () => {
           }))
         : [];
 
-      const finalMessage: string =
-        inner?.response?.llm_final_response ??
+      const finalMessage: string = 
         inner?.message ??
         "I received your message but couldn't process it properly.";
 
@@ -423,7 +422,9 @@ const Index = () => {
         ) : location.pathname === "/ai/developer" ? (
           <AIDeveloperPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : location.pathname === "/ai/music" ? (
-          <AIMusicPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+          <AIPodsPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/video" ? (
+          <AIVideoPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : (
           <ChatInterface
             messages={messages}

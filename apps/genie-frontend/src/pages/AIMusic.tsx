@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Music, Loader2, X, Volume2, Volume1, VolumeX, Pause } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Play, Music, Loader2, X, Volume2, Volume1, VolumeX, Pause, Bot, PanelLeft } from 'lucide-react';
+import { apiRequest } from '../services/api_request';
 
 interface PageProps {
   isSidebarOpen?: boolean;
@@ -38,7 +40,7 @@ const formatDuration = (ms: number): string => {
   return `${minutes}:${parseInt(seconds) < 10 ? '0' : ''}${seconds}`;
 };
 
-export default function AIMusicPage({ isSidebarOpen, onToggleSidebar }: PageProps) {
+export default function AIPodsPage({ isSidebarOpen, onToggleSidebar }: PageProps) {
   const navigate = useNavigate();
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
@@ -54,28 +56,46 @@ export default function AIMusicPage({ isSidebarOpen, onToggleSidebar }: PageProp
   const [imageLoading, setImageLoading] = useState(true);
   const [showChatBox, setShowChatBox] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   
-  const handleGenerateMusic = useCallback(() => {
+  const handleGenerateMusic = useCallback(async () => {
     if (!prompt.trim()) return;
-    
-    // Create a new song object with the prompt as title
-    const newSong: Song = {
-      id: `generated-${Date.now()}`,
-      title: `Generated: ${prompt}`,
-      artist: 'AI Generated',
-      imageUrl: `https://source.unsplash.com/random/300x300/?music,${Date.now()}`,
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      duration: '2:30'
-    };
 
-    // Add the new song to the beginning of the songs array
-    setSongs(prevSongs => [newSong, ...prevSongs]);
-    
-    // Close the chat box and reset the prompt
-    setShowChatBox(false);
-    setPrompt('');
-    
-    console.log('New song created:', newSong);
+    try {
+      setIsGenerating(true);
+      const resp = await apiRequest<any>({
+        url: '/chat/execute/generate-audio',
+        method: 'POST',
+        isAuth: true,
+        payload: { query: prompt },
+      });
+
+      const inner = resp?.data?.data || resp?.data || resp;
+      const audioTitle = inner?.audio_title || `Generated: ${prompt}`;
+      const audioUrl = inner?.audio_url || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+      const imageUrl = inner?.image_url || `https://source.unsplash.com/random/300x300/?music,${Date.now()}`;
+
+      const newSong: Song = {
+        id: `generated-${Date.now()}`,
+        title: audioTitle,
+        artist: 'AI Generated',
+        imageUrl,
+        audioUrl,
+        // Duration is unknown from API, use a placeholder label
+        duration: '2:30',
+      };
+
+      setSongs((prevSongs) => [newSong, ...prevSongs]);
+      setError(null);
+    } catch (err) {
+      console.error('Error generating music:', err);
+      setError('Failed to generate music. Please try again.');
+    } finally {
+      // Close the chat box and reset the prompt
+      setIsGenerating(false);
+      setShowChatBox(false);
+      setPrompt('');
+    }
   }, [prompt]);
 
   // Load saved volume and mute state from localStorage
@@ -108,48 +128,42 @@ export default function AIMusicPage({ isSidebarOpen, onToggleSidebar }: PageProp
     const fetchMusic = async () => {
       try {
         setIsLoading(true);
-        // In a real app, replace this with your actual API endpoint
-        const response = await fetch('https://api.spotify.com/v1/search?q=genre:electronic&type=track&limit=20', {
-          headers: {
-            // In a real app, you would include proper authentication here
-            // 'Authorization': `Bearer ${yourAuthToken}`
-          }
+        const resp = await apiRequest<any>({
+          url: '/chat/get-generated-audios',
+          method: 'GET',
+          isAuth: true,
         });
 
-        if (!response.ok) {
-          // If using a real API and getting 401/403, handle auth here
-          throw new Error('Failed to fetch music data');
+        const data = resp?.data;
+        if (!data) {
+          setSongs([]);
+          setError(null);
+          return;
         }
 
-        const data: ApiResponse = await response.json();
-        
-        // Transform the API response to match our Song interface
-        const formattedSongs: Song[] = data.tracks.map(track => ({
-          id: track.id,
-          title: track.name,
-          artist: track.artists[0]?.name || 'Unknown Artist',
-          imageUrl: track.album.images[0]?.url || 'https://source.unsplash.com/random/300x300/?music,electronic',
-          audioUrl: track.preview_url || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-          duration: formatDuration(track.duration_ms)
-        }));
+        const items = Array.isArray(data) ? data : [data];
+        const formattedSongs: Song[] = items
+          .slice()
+          .reverse()
+          .map((it: any) => ({
+            id: String(it.id ?? it._id ?? Date.now()),
+            title: it.audio_title || 'AI Generated Audio',
+            artist: 'AI Generated',
+            imageUrl:
+              it.image_url ||
+              `https://source.unsplash.com/random/300x300/?music,${it.id ?? it._id ?? 'audio'}`,
+            audioUrl: it.audio_url,
+            // Duration is not provided by backend, use placeholder label
+            duration: '2:30',
+          }))
+          .filter((song) => !!song.audioUrl);
 
         setSongs(formattedSongs);
         setError(null);
       } catch (err) {
-        console.error('Error fetching music:', err);
-        setError('Failed to load music. Using sample data instead.');
-        
-        // Fallback to sample data if API fails
-        const sampleSongs: Song[] = Array.from({ length: 12 }, (_, i) => ({
-          id: (i + 1).toString(),
-          title: `AI Melody ${i + 1}`,
-          artist: ['Neural Beats', 'Synth Wave', 'Digital Dreams', 'Future Bass'][i % 4],
-          imageUrl: `https://source.unsplash.com/random/300x300/?music,electronic,${i}`,
-          audioUrl: `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${(i % 5) + 1}.mp3`,
-          duration: `${Math.floor(Math.random() * 3) + 2}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`
-        }));
-        
-        setSongs(sampleSongs);
+        console.error('Error fetching generated audios:', err);
+        setSongs([]);
+        setError('Failed to load music. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -256,44 +270,29 @@ export default function AIMusicPage({ isSidebarOpen, onToggleSidebar }: PageProp
     <div className="flex flex-col h-screen w-full overflow-hidden">
       <header className="flex items-center justify-between p-4 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
         <div className="flex items-center gap-3">
-          {!isSidebarOpen && (
-            <button
-              onClick={onToggleSidebar}
-              className="p-1.5 rounded-lg hover:bg-muted/50"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5"
-              >
-                <line x1="3" x2="21" y1="6" y2="6" />
-                <line x1="3" x2="21" y1="12" y2="12" />
-                <line x1="3" x2="21" y1="18" y2="18" />
-              </svg>
-            </button>
-          )}
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center">
-              <Music className="h-5 w-5 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold">AI Music</h2>
+          <div className="relative">
+            {isSidebarOpen ? (
+              <Bot className="h-7 w-7 text-primary" />
+            ) : (
+              <img src="/logo.png" alt="GenIE" className="h-7 w-7 object-contain" />
+            )}
           </div>
-          {/* <button 
-            onClick={() => setShowChatBox(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            Create
-          </button> */}
+          <h1 className="text-xl font-bold text-white">GenIE Super Agent</h1>
         </div>
       </header>
-      <div className="flex-1 overflow-auto p-8 bg-gradient-to-b from-gray-900 to-black relative">
+      <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-gray-900 to-black">
+        <div className="absolute top-5 left-4 z-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleSidebar}
+            className="h-8 w-8 hover:bg-muted/50 bg-background/80 backdrop-blur-sm border border-border shadow-sm"
+          >
+            <PanelLeft className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="h-full overflow-y-auto p-8 relative">
         {/* Audio Element (hidden) */}
         <audio
           ref={audioRef}
@@ -338,7 +337,7 @@ export default function AIMusicPage({ isSidebarOpen, onToggleSidebar }: PageProp
                         onLoad={() => setImageLoading(false)}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = `https://source.unsplash.com/random/300x300/?music,${selectedSong.id}`;
+                          // target.src = `https://source.unsplash.com/random/300x300/?music,${selectedSong.id}`;
                           setImageLoading(false);
                         }}
                       />
@@ -429,21 +428,28 @@ export default function AIMusicPage({ isSidebarOpen, onToggleSidebar }: PageProp
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-                onClick={() => setShowChatBox(false)}
+                onClick={() => {
+                  if (!isGenerating) setShowChatBox(false);
+                }}
               />
               <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
                 className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  if (!isGenerating) e.stopPropagation();
+                }}
               >
                 <div className="w-full max-w-md bg-gray-800/90 backdrop-blur-md rounded-xl shadow-2xl overflow-hidden border border-gray-700">
                   <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Generate New Music</h3>
+                    <h3 className="text-lg font-semibold">Generate New Podcast</h3>
                     <button 
-                      onClick={() => setShowChatBox(false)}
-                      className="p-1 rounded-full hover:bg-gray-700 transition-colors"
+                      onClick={() => {
+                        if (!isGenerating) setShowChatBox(false);
+                      }}
+                      className="p-1 rounded-full hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isGenerating}
                       aria-label="Close"
                     >
                       <X className="h-5 w-5" />
@@ -453,15 +459,17 @@ export default function AIMusicPage({ isSidebarOpen, onToggleSidebar }: PageProp
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="Describe the music you want to create..."
-                      className="w-full h-32 p-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Describe the podcast you want to create..."
+                      className="w-full h-32 p-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isGenerating}
                     />
                     <div className="mt-4 flex justify-end">
                       <button 
                         onClick={handleGenerateMusic}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isGenerating}
                       >
-                        Generate Music
+                        {isGenerating ? 'Generating…' : 'Generate Pods'}
                       </button>
                     </div>
                   </div>
@@ -470,75 +478,96 @@ export default function AIMusicPage({ isSidebarOpen, onToggleSidebar }: PageProp
             </>
           )}
         </AnimatePresence>
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-bold">AI Generated Music</h1>
-            <button 
-              onClick={() => setShowChatBox(true)}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
-            >
-              Create
-            </button>
-          </div>
-          
-          {error && (
-            <div className="mb-4 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-200">
-              {error}
-            </div>
-          )}
-          
+        <div className="max-w-7xl mx-auto h-full">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {songs.map((song) => (
-                <motion.div
-                  key={song.id}
-                  className="relative bg-gray-800/50 rounded-lg overflow-hidden cursor-pointer group hover:bg-gray-700/50 transition-all transform hover:-translate-y-1 shadow-lg hover:shadow-xl"
-                  onClick={() => handleCardClick(song)}
-                  onMouseEnter={() => setHoveredCard(song.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="relative aspect-square">
-                    <img 
-                      src={song.imageUrl} 
-                      alt={song.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      onError={(e) => {
-                        // Fallback image if the original fails to load
-                        const target = e.target as HTMLImageElement;
-                        target.src = `https://source.unsplash.com/random/300x300/?music,${song.id}`;
-                      }}
-                    />
-                    {hoveredCard === song.id && (
-                      <motion.div 
-                        className="absolute inset-0 bg-black/60 flex items-center justify-center"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                      >
-                        <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                          <Play className="text-white h-6 w-6 ml-1" fill="white" />
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg truncate" title={song.title}>{song.title}</h3>
-                    <p className="text-gray-400 text-sm truncate">{song.artist}</p>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-xs text-gray-500">{song.duration}</span>
-                      <span className="text-xs px-2 py-1 bg-gray-700/50 rounded-full">AI</span>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+          ) : !isLoading && songs.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center gap-4">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Music className="h-6 w-6 text-primary" />
+                </div>
+                <h2 className="text-2xl font-semibold text-white">No generated podcasts yet</h2>
+                <p className="text-muted-foreground max-w-md text-sm">
+                  Click the button below to create wonderful AI-generated tracks and start your playlist.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowChatBox(true)}
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+              >
+                Create
+              </button>
             </div>
+          ) : (
+            <>
+              <div className="flex justify-between items-center mb-8">
+                <h1 className="text-4xl font-bold">AI Generated Podcasts</h1>
+                <button 
+                  onClick={() => setShowChatBox(true)}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+                >
+                  Create
+                </button>
+              </div>
+              
+              {error && (
+                <div className="mb-4 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-200">
+                  {error}
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                {songs.map((song) => (
+                  <motion.div
+                    key={song.id}
+                    className="relative bg-gray-800/50 rounded-lg overflow-hidden cursor-pointer group hover:bg-gray-700/50 transition-all transform hover:-translate-y-1 shadow-lg hover:shadow-xl"
+                    onClick={() => handleCardClick(song)}
+                    onMouseEnter={() => setHoveredCard(song.id)}
+                    onMouseLeave={() => setHoveredCard(null)}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="relative aspect-square">
+                      <img 
+                        src={song.imageUrl} 
+                        alt={song.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        onError={(e) => {
+                          // Fallback image if the original fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.src = `https://source.unsplash.com/random/300x300/?music,${song.id}`;
+                        }}
+                      />
+                      {hoveredCard === song.id && (
+                        <motion.div 
+                          className="absolute inset-0 bg-black/60 flex items-center justify-center"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                        >
+                          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                            <Play className="text-white h-6 w-6 ml-1" fill="white" />
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-lg truncate" title={song.title}>{song.title}</h3>
+                      <p className="text-gray-400 text-sm truncate">{song.artist}</p>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-xs text-gray-500">{song.duration}</span>
+                        <span className="text-xs px-2 py-1 bg-gray-700/50 rounded-full">AI</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </>
           )}
+        </div>
         </div>
       </div>
     </div>
