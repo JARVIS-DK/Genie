@@ -36,6 +36,11 @@ func Gemini(query string, agentName string, apiKey string) (string, error) {
 	case "CODE_GENERATOR_AND_DEBUGGER":
 		prompt = codeGenerationAndDebuggerPrompt()
 		break
+	case "SIMPLE_CHAT_BOT":
+		prompt = simpleQueryChatbotPrompt()
+		break
+	case "MERGE_RESPONSES":
+		prompt = getMergeResponsesPrompt()
 	default:
 		prompt = ""
 	}

@@ -307,7 +307,7 @@ func ExecuteAgents(query string, selectedAgents []string, db shared.MongoReposit
 					"  \"aspect_ratio\": \"1:1\",\n"+
 					"  \"number_of_images\": 1\n"+
 					"}",
-				"USER: %s\n\n",
+				"USER_QUERY: %s\n\n",
 				query,
 			)
 
@@ -420,8 +420,47 @@ func ExecuteAgents(query string, selectedAgents []string, db shared.MongoReposit
 				return "", err
 			}
 			executedAgents += fmt.Sprintf("Response from Web Search Agent: %v\n", geminiResponse)
+		} else if agent == "SIMPLE_CHAT_BOT" {
+			apiKeyCollectionName := model.CollectionName["API_KEYS"]
+			apiKeyFilterQuery := map[string]interface{}{
+				"code": "SIMPLE_CHAT_BOT",
+			}
+			dbResp, err := db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], apiKeyCollectionName, apiKeyFilterQuery)
+			if err != nil {
+				return "", err
+			}
+			var dbRespMap map[string]interface{}
+			shared.JsonMarshaller(dbResp, &dbRespMap)
+			apiKey := dbRespMap["api_key"].(string)
+			geminiResponse, err := prompt_generator.Gemini(query, "SIMPLE_CHAT_BOT", apiKey)
+			if err != nil {
+				return "", err
+			}
+			executedAgents += fmt.Sprintf("Response from Web Search Agent: %v\n", geminiResponse)
 		}
 
 	}
 	return executedAgents, nil
+}
+
+func MergeResponses(query string, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData) (string, error) {
+
+	apiKeyCollectionName := model.CollectionName["API_KEYS"]
+	apiKeyFilterQuery := map[string]interface{}{
+		"code": "MERGE_RESPONSE_API_KEY",
+	}
+	dbResp, err := db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], apiKeyCollectionName, apiKeyFilterQuery)
+	if err != nil {
+		return "", err
+	}
+	var dbRespMap map[string]interface{}
+	shared.JsonMarshaller(dbResp, &dbRespMap)
+	apiKey := dbRespMap["api_key"].(string)
+	geminiResponse, err := prompt_generator.Gemini(query, "MERGE_RESPONSES", apiKey)
+	if err != nil {
+		return "", err
+	}
+	mergeResponse := fmt.Sprintf("%v", geminiResponse)
+
+	return mergeResponse, nil
 }

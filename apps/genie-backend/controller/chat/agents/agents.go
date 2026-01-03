@@ -27,6 +27,11 @@ var AgentsList = map[string]AgentDTO{
 		AgentCode:        "PODCAST_GENERATION",
 		AgentDescription: "Produces complete podcast episodes from topics or structured scripts. Handles episode planning, narrative flow, voice synthesis, tone modulation, and optional sound design, enabling scalable creation of engaging, natural-sounding podcasts for education, entertainment, and content platforms.",
 	},
+	"SIMPLE_CHAT_BOT": {
+		AgentName:        "Simple Chat Bot",
+		AgentCode:        "SIMPLE_CHAT_BOT",
+		AgentDescription: "Provides basic conversational responses to user queries using a simple chat model for quick and straightforward interactions. Ideal for simple questions and general assistance. Does not perform complex reasoning or multi-step tasks.",
+	},
 }
 
 var OptionalAgentsList = map[string]AgentDTO{

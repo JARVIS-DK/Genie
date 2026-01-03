@@ -186,6 +186,7 @@ func GoogleAudioGeneration(data GoogleAudioGenerationRequest, db shared.MongoRep
 	collectionName := model.CollectionName["AUDIO_GENERATION_HISTORY"]
 	createPayload := map[string]interface{}{
 		"audio_url":      publicURL,
+		"image_url":      imageURL,
 		"audio_title":    title,
 		"user_query":     data.Query,
 		"enhanced_query": enhancedQuery,

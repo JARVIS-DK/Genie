@@ -16,7 +16,10 @@ import AIImage from "./pages/AIImage";
 import Snowfall from "react-snowfall";
 
 const queryClient = new QueryClient();
-
+const image1 = document.createElement("img");
+image1.src = "/snowflake.png";
+const image2 = document.createElement("img");
+image2.src = "/newyear.png";
 const App = () => (
   <Provider store={store}>
     <PersistGate loading={null} persistor={persistor}>
@@ -25,8 +28,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <Snowfall radius={[5, 10]} images={[image1, image2]}/>
           
-            <Snowfall />
             <Routes>
               <Route
                 path="/"

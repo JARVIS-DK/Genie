@@ -99,7 +99,14 @@ func (s *service) Execute(metaData shared.ApiMetaData, data ExecuteRequestDto) (
 			return nil, err
 		}
 
-		response.Message = fmt.Sprintf("%s\n\n%s", strings.Join(selectedAgents, ", "), agentsExecutedResults)
+		mergeResponseQuery := fmt.Sprintf("User Query: %s \n Agents Selected: %s \n Executed Agents Results: %s", data.Query, strings.Join(selectedAgents, ", "), agentsExecutedResults)
+		mergeResponseResults, err := MergeResponses(mergeResponseQuery, s.db, metaData)
+		if err != nil {
+			fmt.Println("mergeResp", err)
+			return nil, err
+		}
+
+		response.Message = mergeResponseResults
 
 	}
 

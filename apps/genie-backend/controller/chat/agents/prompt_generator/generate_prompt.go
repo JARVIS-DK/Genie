@@ -28,6 +28,9 @@ func GenerateTitleAndEnhancedQuery(query string, agentName string, apiKey string
 	case "PARAMETER_GETTING":
 		prompt = getParameterGettingPrompt()
 		break
+	case "SIMPLE_CHAT_BOT":
+		prompt = simpleQueryChatbotPrompt()
+		break
 	default:
 		prompt = ""
 	}
