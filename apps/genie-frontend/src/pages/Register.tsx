@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/services/api_request";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const schema = z
   .object({
@@ -36,6 +37,8 @@ const Register = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -80,7 +83,11 @@ const Register = () => {
           <div className="text-left max-w-xl">
             <div className="text-[11px] tracking-widest text-foreground/70 font-medium mb-3">TRUSTED BY TEAMS</div>
             <blockquote className="text-2xl leading-relaxed text-foreground/90"> 
-              “GenIE brings the best of AI technology and research, empowering enterprises to scale without vendor lock-in, while retaining sovereignty over their AI.”
+              “GenIE
+The art of orchestrating intelligence.
+Autonomous agents working as one.
+From complexity to clarity.
+From ideas to impact..”
             </blockquote>
             <div className="mt-6 text-sm">
               {/* <div className="font-semibold text-foreground">Shayak Mazumder</div>
@@ -91,7 +98,7 @@ const Register = () => {
       </div>
 
       <div className="flex items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md border border-white/10 rounded-xl bg-background/60 backdrop-blur-sm p-6 shadow-lg">
           <div className="flex flex-col items-center mb-6">
             <img src="/logo.png" alt="GenIE" className="h-10 w-10 mb-2" />
             <h1 className="text-2xl font-semibold text-foreground">Create your account</h1>
@@ -108,7 +115,7 @@ const Register = () => {
                     <FormItem>
                       <Label htmlFor="firstName">First Name</Label>
                       <FormControl>
-                        <Input id="firstName" {...field} />
+                        <Input id="firstName" placeholder="First name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -121,7 +128,7 @@ const Register = () => {
                     <FormItem>
                       <Label htmlFor="lastName">Last Name</Label>
                       <FormControl>
-                        <Input id="lastName" {...field} />
+                        <Input id="lastName" placeholder="Last name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -177,7 +184,7 @@ const Register = () => {
                     <FormItem>
                       <Label htmlFor="phone">Phone Number</Label>
                       <FormControl>
-                        <Input id="phone" inputMode="numeric" placeholder="1234567890" {...field} />
+                        <Input id="phone" inputMode="numeric" placeholder="Phone number" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -191,7 +198,27 @@ const Register = () => {
                   <FormItem>
                     <Label htmlFor="password">Password</Label>
                     <FormControl>
-                      <Input id="password" type="password" {...field} />
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Create a password"
+                          {...field}
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -204,14 +231,41 @@ const Register = () => {
                   <FormItem>
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
                     <FormControl>
-                      <Input id="confirmPassword" type="password" {...field} />
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Re-enter your password"
+                          {...field}
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword((prev) => !prev)}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating account..." : "Create Account"}
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Creating account...</span>
+                  </span>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </form>
           </Form>

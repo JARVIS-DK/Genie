@@ -15,5 +15,9 @@ var GlobalEnv = map[string]interface{}{
 	"JWT_REFRESH_TOKEN_KEY":      "yNVrBBM+oAOWOEcXPFjJuvXXpUq/4XR1KuSGX/i+slF+oE/geu2uW25PXjfWS9pwjmTry3WXn7q0DH7I+vNSjw==",
 	"JWT_REFRESH_TOKEN_DURATION": "72h",
 
+	"GOOGLE_SERVICE_ACCOUNT_URL":       "https://storage.googleapis.com/genie-blob-storage/json/genie-654.json",
 	"GOOGLE_CLOUD_STORAGE_BUCKET_NAME": "genie-blob-storage",
+
+	"GOOGLE_GEMINI_CHAT_MODEL":         "gemini-3-pro-preview",
+	"GOOGLE_GEMINI_GENERAL_CHAT_MODEL": "gemini-2.5-flash",
 }

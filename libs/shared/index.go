@@ -1,9 +1,9 @@
 package shared
 
 import (
-	"libs/shared/components"
 	db_model "libs/shared/db_connectors/model"
 	db_repo "libs/shared/db_connectors/repository"
+	components "libs/shared/utils/components"
 	helpers "libs/shared/utils/helpers"
 	middleware "libs/shared/utils/middleware"
 )
@@ -36,6 +36,12 @@ type ApiResponseDto struct {
 	} `json:"data"`
 	Error  error `json:"error"`
 	Status *bool `json:"status"`
+}
+
+type ResponseStruct struct {
+	Data   map[string]interface{} `json:"data"`
+	Error  error                  `json:"error"`
+	Status bool                   `json:"status"`
 }
 
 // ========== Mongo Repository Functions ==========
@@ -83,3 +89,4 @@ var ContainsInterface = helpers.ContainsInterface
 
 // ========== Component Functions ==========
 var APIRequestComponentProcessor = components.APIRequestComponentProcessor
+var UploadToGCS = components.UploadToGCS

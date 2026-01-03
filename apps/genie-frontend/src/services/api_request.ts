@@ -70,6 +70,48 @@ export async function apiRequest<TResp = any, TBody = any, TQuery = Record<strin
   return data;
 }
 
+// Download a remote resource via backend proxy. Returns a Blob when successful.
+export async function apiDownload(opts: { url: string; payload?: any; isAuth?: boolean; headers?: Record<string,string> }) {
+  const { url, payload, isAuth = false, headers = {} } = opts;
+  const finalUrl = `${API_BASE_URL}${url}`;
+
+  const baseHeaders: Record<string, string> = { "Content-Type": "application/json", ...headers };
+
+  if (isAuth) {
+    let token = getAccessToken();
+
+    if (!token || isTokenExpired(token)) {
+      const refreshToken = getRefreshToken();
+      if (refreshToken) {
+        const resp = await apiRequest<any>({
+          url: "/user/get-access-token",
+          method: "POST",
+          payload: { refresh_token: refreshToken },
+          isAuth: false,
+        });
+        token = resp?.data?.access_token ?? null;
+        if (token) setJwtCookie('access_token', token);
+      }
+    }
+
+    if (token) baseHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(finalUrl, {
+    method: 'POST',
+    headers: baseHeaders,
+    body: JSON.stringify(payload ?? {}),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `${res.status} ${res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  return blob;
+}
+
 // Cookie helpers
 function setCookie(name: string, value: string, maxAgeSeconds?: number) {
   const parts = [

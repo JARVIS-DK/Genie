@@ -18,4 +18,14 @@ func (h *handler) Route(g *echo.Group) {
 	g.POST("/rename-conversation", h.RenameConversation, shared.AuthorizationCheck(authKey, mongoCredential))
 	g.GET("/delete-conversation/:conversation_id", h.DeleteConversation, shared.AuthorizationCheck(authKey, mongoCredential))
 	// g.POST("/file-upload", h.FileUpload, shared.AuthorizationCheck(authKey, mongoCredential))
+
+	g.POST("/execute/generate-image", h.GenerateImage, shared.AuthorizationCheck(authKey, mongoCredential))
+	g.GET("/get-generated-images", h.GetGeneratedImages, shared.AuthorizationCheck(authKey, mongoCredential))
+	g.POST("/execute/generate-video", h.GenerateVideo, shared.AuthorizationCheck(authKey, mongoCredential))
+	g.GET("/get-generated-videos", h.GetGeneratedVideos, shared.AuthorizationCheck(authKey, mongoCredential))
+
+	// Proxy download endpoint to avoid CORS issues when clients download remote images
+	g.POST("/download-proxy", h.DownloadProxy, shared.AuthorizationCheck(authKey, mongoCredential))
+	g.POST("/execute/generate-audio", h.GenerateAudio, shared.AuthorizationCheck(authKey, mongoCredential))
+	g.GET("/get-generated-audios", h.GetGeneratedAudios, shared.AuthorizationCheck(authKey, mongoCredential))
 }

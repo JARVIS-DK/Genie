@@ -436,7 +436,7 @@ const CustomDivider: React.FC = () => (
 
 // Main PromptInputBox Component
 interface PromptInputBoxProps {
-  onSend?: (message: string, files?: File[]) => void;
+  onSend?: (message: string, files?: File[], optionalAgent?: string) => void;
   isLoading?: boolean;
   placeholder?: string;
   className?: string;
@@ -531,12 +531,11 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
 
   const handleSubmit = () => {
     if (input.trim() || files.length > 0) {
-      let messagePrefix = "";
-      if (showSearch) messagePrefix = "[Search: ";
-      else if (showThink) messagePrefix = "[Think: ";
-      else if (showCanvas) messagePrefix = "[Canvas: ";
-      const formattedInput = messagePrefix ? `${messagePrefix}${input}]` : input;
-      onSend?.(formattedInput, files);
+      let optionalAgent = "";
+      if (showSearch) optionalAgent = "WEB_SEARCH";
+      else if (showThink) optionalAgent = "DEEP_RESEARCH";
+      const formattedInput = input;
+      onSend?.(formattedInput, files, optionalAgent);
       setInput("");
       setFiles([]);
       setFilePreviews({});
@@ -623,13 +622,13 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
               />
             </div>
 
-            {isRecording && (
+            {/* {isRecording && (
               <VoiceRecorder
                 isRecording={isRecording}
                 onStartRecording={handleStartRecording}
                 onStopRecording={handleStopRecording}
               />
-            )}
+            )} */}
 
             <PromptInputActions className="flex items-center justify-between gap-2 p-0 pt-2">
               <div
@@ -731,7 +730,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
 
                   <CustomDivider />
 
-                  <button
+                  {/* <button
                     type="button"
                     onClick={handleCanvasToggle}
                     className={cn(
@@ -763,7 +762,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                         </motion.span>
                       )}
                     </AnimatePresence>
-                  </button>
+                  </button> */}
                 </div>
               </div>
 
@@ -778,7 +777,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                       : "Voice message"
                   }
                 >
-                  <Button
+                  {/* <Button
                     variant="default"
                     size="icon"
                     className={cn(
@@ -803,7 +802,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                     ) : (
                       <Mic className="h-5 w-5 text-[#1F2023] transition-colors" />
                     )}
-                  </Button>
+                  </Button> */}
                 </PromptInputAction>
 
                 {/* Dedicated Send button */}

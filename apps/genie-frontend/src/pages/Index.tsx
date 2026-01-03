@@ -5,6 +5,12 @@ import { FileAttachment } from "@/services/api";
 import { apiRequest } from "@/services/api_request";
 import SettingsPage from "./Settings";
 import AvailableAgents from "./AvailableAgents"
+import AISlidesPage from "./AISlides";
+import AIImagePage from "./AIImage";
+import AIChatDemoPage from "./AIChat";
+import AIDeveloperPage from "./AIDeveloper";
+import AIPodsPage from "./AIMusic";
+import AIVideoPage from "./AIVideo";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 interface Chat {
@@ -183,7 +189,7 @@ const Index = () => {
     }
   };
 
-  const sendApiRequest = async (userMessage: string, files?: FileAttachment[]) => {
+  const sendApiRequest = async (userMessage: string, files?: FileAttachment[], optionalAgent?: string) => {
     setIsTyping(true);
 
     try {
@@ -192,8 +198,11 @@ const Index = () => {
       try { localStorage.setItem('last_conversation_id', chat.conversationId); } catch {}
 
       const response = await apiRequest<{
-        meta?: { status: boolean; message: string };
-        data?: any;
+        meta: { status: boolean; message: string };
+        data: {
+          message: string;
+          agents_executed_results: any[] | null;
+        };
       }>({
         url: "/chat/execute",
         method: "POST",
@@ -202,16 +211,13 @@ const Index = () => {
           query: userMessage,
           conversation_id: chat.conversationId,
           files: files || [],
+          optional_agent: optionalAgent,
         },
       });
 
-      const inner = (response?.data?.response
-        ? response?.data
-        : response?.data?.data?.response
-        ? response?.data?.data
-        : (response as any)) || {};
+      const inner = response?.data || {};
 
-      const rawAgentResults = inner?.response?.agent_executed_results ?? [];
+      const rawAgentResults = inner?.agents_executed_results ?? [];
       const agentResults: AgentExecutedResult[] = Array.isArray(rawAgentResults)
         ? rawAgentResults.map((ar: any) => ({
             agent_id: ar?.agent_id,
@@ -229,8 +235,7 @@ const Index = () => {
           }))
         : [];
 
-      const finalMessage: string =
-        inner?.response?.llm_final_response ??
+      const finalMessage: string = 
         inner?.message ??
         "I received your message but couldn't process it properly.";
 
@@ -308,7 +313,7 @@ const Index = () => {
     }
   };
 
-  const handleSendMessage = (content: string, files?: FileAttachment[]) => {
+  const handleSendMessage = (content: string, files?: FileAttachment[], optional_agent?: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -318,7 +323,7 @@ const Index = () => {
     };
 
     setChats((prev) => prev.map((c) => (c.id === currentChatId ? { ...c, messages: [...c.messages, userMessage] } : c)));
-    sendApiRequest(content, files);
+    sendApiRequest(content, files, optional_agent);
   };
 
   const handleNewChat = () => {
@@ -409,6 +414,18 @@ const Index = () => {
           <SettingsPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : location.pathname === "/agents" ? (
           <AvailableAgents isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/slides" ? (
+          <AISlidesPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/image" ? (
+          <AIImagePage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/chat" ? (
+          <AIChatDemoPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/developer" ? (
+          <AIDeveloperPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/music" ? (
+          <AIPodsPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : location.pathname === "/ai/video" ? (
+          <AIVideoPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : (
           <ChatInterface
             messages={messages}

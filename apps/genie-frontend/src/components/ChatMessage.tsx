@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { FileAttachment } from "@/services/api";
-import { Paperclip } from "lucide-react";
+import { Paperclip, User, Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -41,10 +41,16 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [], cr
   return (
     <div
       className={cn(
-        "flex w-full animate-slide-up",
+        "flex w-full animate-slide-up items-start gap-2",
         isUser ? "justify-end" : "justify-start"
       )}
     >
+      {!isUser && (
+        <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+          <Bot className="h-4 w-4" />
+        </div>
+      )}
+
       <div
         className={cn(
           "max-w-[80%] rounded-2xl px-4 py-2.5 shadow-[var(--shadow-message)] transition-all",
@@ -161,6 +167,12 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [], cr
           )}
         </div>
       </div>
+
+      {isUser && (
+        <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground flex-shrink-0">
+          <User className="h-4 w-4" />
+        </div>
+      )}
     </div>
   );
 };

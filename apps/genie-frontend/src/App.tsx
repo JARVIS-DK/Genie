@@ -7,13 +7,19 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import MusicPlayerPage from "./pages/MusicPlayer";
 import RequireAuth from "@/components/RequireAuth";
 import { Provider } from "react-redux";
 import { store, persistor } from "@/store";
 import { PersistGate } from "redux-persist/integration/react";
+import AIImage from "./pages/AIImage";
+import Snowfall from "react-snowfall";
 
 const queryClient = new QueryClient();
-
+const image1 = document.createElement("img");
+image1.src = "/snowflake.png";
+const image2 = document.createElement("img");
+image2.src = "/newyear.png";
 const App = () => (
   <Provider store={store}>
     <PersistGate loading={null} persistor={persistor}>
@@ -22,6 +28,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <Snowfall radius={[5, 10]} images={[image1, image2]}/>
+          
             <Routes>
               <Route
                 path="/"
@@ -48,7 +56,71 @@ const App = () => (
                 }
               />
               <Route
+                path="/ai/music"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/video"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/music/:id"
+                element={
+                  <RequireAuth>
+                    <MusicPlayerPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/AIImage"
+                element={
+                  <RequireAuth>
+                    <AIImage/>
+                  </RequireAuth>
+                }
+              />
+              <Route
                 path="/agents"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/slides"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/image"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/chat"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai/developer"
                 element={
                   <RequireAuth>
                     <Index />
