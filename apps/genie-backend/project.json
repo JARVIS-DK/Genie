@@ -1,0 +1,38 @@
+{
+  "name": "genie-backend",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/genie-backend",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/apps/genie-backend"],
+      "options": {
+        "command": "go build -o ../../dist/apps/genie-backend/main.exe main.go",
+        "cwd": "apps/genie-backend"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run main.go",
+        "cwd": "apps/genie-backend"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go test ./...",
+        "cwd": "apps/genie-backend"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go vet ./...",
+        "cwd": "apps/genie-backend"
+      }
+    }
+  },
+  "tags": ["type:app", "scope:genie-backend"]
+}
