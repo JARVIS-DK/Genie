@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { FileAttachment } from "@/services/api";
-import { Paperclip, User, Bot } from "lucide-react";
+import { User, Bot, Brain, FileText, Image, FileAudio, FileVideo, File } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+
+import type { AgentExecutedResult } from "./ChatInterface";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -11,9 +14,10 @@ interface ChatMessageProps {
   isStreaming?: boolean;
   files?: FileAttachment[];
   createdAtMs?: number;
+  agentResults?: AgentExecutedResult[];
 }
 
-export const ChatMessage = ({ role, content, isStreaming = false, files = [], createdAtMs }: ChatMessageProps) => {
+export const ChatMessage = ({ role, content, isStreaming = false, files = [], createdAtMs, agentResults }: ChatMessageProps) => {
   const [displayedContent, setDisplayedContent] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -61,19 +65,47 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [], cr
       >
         {/* File Attachments */}
         {files.length > 0 && (
-          <div className="mb-2 space-y-1">
-            {files.map((file) => (
-              <div
-                key={file.id}
-                className="flex items-center gap-2 text-xs opacity-80"
-              >
-                <Paperclip className="h-3 w-3" />
-                <span className="truncate">{file.name}</span>
-                <span className="text-xs opacity-60">
-                  ({(file.size / 1024).toFixed(1)} KB)
-                </span>
-              </div>
-            ))}
+          <div className="mb-2 flex flex-wrap gap-2">
+            {files.map((file) => {
+              const isImage = file.type?.startsWith("image/");
+              const isAudio = file.type?.startsWith("audio/");
+              const isVideo = file.type?.startsWith("video/");
+              const isPdf = file.type === "application/pdf";
+              const FileIcon = isImage ? Image : isAudio ? FileAudio : isVideo ? FileVideo : isPdf ? FileText : File;
+              const sizeStr = file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${(file.size / 1024).toFixed(1)} KB`;
+
+              return isImage && file.path ? (
+                <a key={file.id} href={file.path} target="_blank" rel="noopener noreferrer" className="block">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden border border-border/40 bg-muted/30">
+                    <img src={file.path} alt={file.name} className="h-full w-full object-cover" />
+                  </div>
+                </a>
+              ) : (
+                <a
+                  key={file.id}
+                  href={file.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "flex items-center gap-2.5 px-3 py-2 rounded-lg border max-w-[220px] transition-colors",
+                    isUser
+                      ? "border-primary-foreground/20 bg-primary-foreground/10 hover:bg-primary-foreground/15"
+                      : "border-border/50 bg-muted/40 hover:bg-muted/60"
+                  )}
+                >
+                  <div className={cn(
+                    "h-8 w-8 rounded-md flex items-center justify-center flex-shrink-0",
+                    isUser ? "bg-primary-foreground/15" : "bg-primary/10"
+                  )}>
+                    <FileIcon className={cn("h-4 w-4", isUser ? "text-primary-foreground/80" : "text-primary")} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium truncate">{file.name}</p>
+                    <p className={cn("text-[10px]", isUser ? "text-primary-foreground/60" : "text-muted-foreground")}>{sizeStr}</p>
+                  </div>
+                </a>
+              );
+            })}
           </div>
         )}
         
@@ -161,6 +193,61 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [], cr
                 </div>
               )}
             </div>
+          )}
+          {agentResults && agentResults.length > 0 && (
+            <Accordion type="multiple" className="w-full mt-3 rounded-lg border border-primary/20 bg-primary/5 overflow-hidden">
+              {agentResults.map((ar, ai) => (
+                <AccordionItem key={`agent-${ai}`} value={`agent-${ai}`} className="border-b border-primary/15 last:border-b-0">
+                  <AccordionTrigger className="py-2 px-3 text-xs hover:no-underline hover:bg-primary/10 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <Brain className="h-3.5 w-3.5 text-primary" />
+                      <span className="font-medium">{ar.agent_name}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${ar.agent_status === "SUCCESS" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                        {ar.agent_status}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-2">
+                    {ar.response_error ? (
+                      <p className="text-xs text-destructive bg-destructive/10 px-2 py-1.5 rounded">Error: {ar.response_error}</p>
+                    ) : ar.response && Object.keys(ar.response).length > 0 ? (
+                      <Accordion type="multiple" className="w-full rounded-md border border-border/50 bg-muted/30 overflow-hidden">
+                        {Object.entries(ar.response).map(([key, value]) => (
+                          <AccordionItem key={key} value={key} className="border-b border-border/30 last:border-b-0">
+                            <AccordionTrigger className="py-1.5 px-2.5 text-[11px] hover:no-underline hover:bg-muted/50 transition-colors">
+                              <span className="font-mono text-muted-foreground">{key}</span>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-2.5 pb-2">
+                              {Array.isArray(value) ? (
+                                <div className="max-h-48 overflow-y-auto rounded border border-border/40 bg-background/80" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
+                                  <ul className="space-y-1 p-2 text-xs">
+                                    {value.map((item, i) => (
+                                      <li key={i} className="text-foreground/90 break-all">
+                                        {typeof item === 'string' && item.startsWith('http') ? (
+                                          <a href={item} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{item}</a>
+                                        ) : (
+                                          <span>{typeof item === 'string' ? item : JSON.stringify(item)}</span>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ) : (
+                                <pre className="whitespace-pre-wrap bg-background/80 p-2 rounded border border-border/40 text-foreground/90 text-xs">
+{typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+                                </pre>
+                              )}
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No response data</p>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           )}
           {tsText && (
             <div className={cn("mt-1 text-[10px] opacity-80", isUser ? "text-primary-foreground/80" : "text-muted-foreground")}>{tsText}</div>

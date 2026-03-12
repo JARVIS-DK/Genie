@@ -19,6 +19,12 @@ interface Chat {
   conversationId: string;
 }
 
+const unwrapData = (resp: any) => {
+  const d = resp?.data;
+  if (d && typeof d === 'object' && 'data' in d) return d.data;
+  return d;
+};
+
 const Index = () => {
   const genConversationId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const [chats, setChats] = useState<Chat[]>([{ id: "1", messages: [], conversationId: genConversationId() }]);
@@ -78,23 +84,12 @@ const Index = () => {
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const resp = await apiRequest<{
-          meta: { status: boolean; message: string };
-          data: Array<{
-            _id: number;
-            conversation_id: string;
-            conversation_name: string;
-            created_at: string;
-            id: number;
-            updated_at: string;
-            user_id: number;
-          }>;
-        }>({
+        const resp = await apiRequest<any>({
           url: "/chat/get-conversations",
           method: "GET",
           isAuth: true,
         });
-        setConversations(resp?.data ?? []);
+        setConversations(unwrapData(resp) ?? []);
       } catch (e) {
         console.error("Failed to fetch conversations", e);
       }
@@ -124,46 +119,46 @@ const Index = () => {
 
   const loadChatHistory = async (cid: string) => {
     try {
-      const resp = await apiRequest<{
-        meta: { status: boolean; message: string };
-        data: {
-          _id: number;
-          available_dates: string[];
-          conversation_id: string;
-          conversation_name: string;
-          created_at: string;
-          history: Record<string, Array<{
-            created_at: string;
-            files: Array<{ id: string; name: string; path: string; size: number; type: string }> | null;
-            role: 'user' | 'assistant';
-            message: string;
-            updated_at: string;
-          }>>;
-          id: number;
-          updated_at: string;
-          user_id: number;
-        };
-      }>({
+      const resp = await apiRequest<any>({
         url: `/chat/get-chat-history/${cid}`,
         method: 'GET',
         isAuth: true,
       });
 
-      const hist = resp?.data?.history || {};
-      const flattened = Object.values(hist).flatMap((entries) => entries.map((e) => ({
+      const histData = unwrapData(resp) || {};
+      const hist = histData?.history || {};
+      const flattened = Object.values(hist).flatMap((entries: any) => entries.map((e: any) => ({
         createdAtMs: new Date(e.created_at).getTime(),
         role: e.role === 'user' ? 'user' as const : 'assistant' as const,
         content: e.message,
         files: e.files || undefined,
+        agents_executed_results: e.agents_executed_results || undefined,
       })));
       flattened.sort((a, b) => a.createdAtMs - b.createdAtMs);
-      const items: Message[] = flattened.map((e, idx) => ({
-        id: `${e.createdAtMs}-${idx}`,
-        role: e.role,
-        content: e.content,
-        isStreaming: false,
-        files: e.files,
-      }));
+      const items: Message[] = flattened.map((e, idx) => {
+        const rawResults = e.agents_executed_results;
+        const agentResults: AgentExecutedResult[] | undefined =
+          Array.isArray(rawResults) && rawResults.length > 0
+            ? rawResults.map((ar: any) => ({
+                agent_id: ar?.agent_id ?? "",
+                agent_name: ar?.agent_name ?? "",
+                agent_status: ar?.agent_status ?? "FAILED",
+                completed_at: ar?.completed_at,
+                started_at: ar?.started_at,
+                query: ar?.query,
+                response: ar?.response ?? null,
+                response_error: ar?.response_error ?? null,
+              }))
+            : undefined;
+        return {
+          id: `${e.createdAtMs}-${idx}`,
+          role: e.role,
+          content: e.content,
+          isStreaming: false,
+          files: e.files,
+          agentResults,
+        };
+      });
 
       let nextCurrentId: string | null = null;
       setChats((prev) => {
@@ -197,41 +192,31 @@ const Index = () => {
       if (!chat) throw new Error("Chat not found");
       try { localStorage.setItem('last_conversation_id', chat.conversationId); } catch {}
 
-      const response = await apiRequest<{
-        meta: { status: boolean; message: string };
-        data: {
-          message: string;
-          agents_executed_results: any[] | null;
-        };
-      }>({
-        url: "/chat/execute",
+      const response = await apiRequest<any>({
+        url: "/chats/execute",
         method: "POST",
         isAuth: true,
         payload: {
-          query: userMessage,
+          message: userMessage,
           conversation_id: chat.conversationId,
           files: files || [],
           optional_agent: optionalAgent,
         },
       });
 
-      const inner = response?.data || {};
+      const inner = unwrapData(response) || {};
 
       const rawAgentResults = inner?.agents_executed_results ?? [];
       const agentResults: AgentExecutedResult[] = Array.isArray(rawAgentResults)
         ? rawAgentResults.map((ar: any) => ({
-            agent_id: ar?.agent_id,
-            agent_name: ar?.agent_name,
-            agent_status: !!ar?.agent_status,
-            agent_type: ar?.agent_type,
+            agent_id: ar?.agent_id ?? "",
+            agent_name: ar?.agent_name ?? "",
+            agent_status: ar?.agent_status ?? "FAILED",
             completed_at: ar?.completed_at,
             started_at: ar?.started_at,
+            query: ar?.query,
+            response: ar?.response ?? null,
             response_error: ar?.response_error ?? null,
-            response_message: Array.isArray(ar?.response_message)
-              ? ar.response_message.map((m: any) => (typeof m === 'string' ? m : JSON.stringify(m)))
-              : ar?.response_message
-              ? [typeof ar.response_message === 'string' ? ar.response_message : JSON.stringify(ar.response_message)]
-              : [],
           }))
         : [];
 
@@ -276,23 +261,12 @@ const Index = () => {
         try { localStorage.setItem('last_conversation_id', chat.conversationId); } catch {}
         navigate(`/chat/${chat.conversationId}`, { replace: true });
         try {
-          const resp = await apiRequest<{
-            meta: { status: boolean; message: string };
-            data: Array<{
-              _id: number;
-              conversation_id: string;
-              conversation_name: string;
-              created_at: string;
-              id: number;
-              updated_at: string;
-              user_id: number;
-            }>;
-          }>({
+          const resp = await apiRequest<any>({
             url: "/chat/get-conversations",
             method: "GET",
             isAuth: true,
           });
-          setConversations(resp?.data ?? []);
+          setConversations(unwrapData(resp) ?? []);
         } catch {}
       }
     } catch (error) {
@@ -367,22 +341,11 @@ const Index = () => {
       method: 'GET',
       isAuth: true,
     }).then(() => {
-      void apiRequest<{
-        meta: { status: boolean; message: string };
-        data: Array<{
-          _id: number;
-          conversation_id: string;
-          conversation_name: string;
-          created_at: string;
-          id: number;
-          updated_at: string;
-          user_id: number;
-        }>;
-      }>({
+      void apiRequest<any>({
         url: "/chat/get-conversations",
         method: "GET",
         isAuth: true,
-      }).then((resp) => setConversations(resp?.data ?? [])).catch(() => {});
+      }).then((resp) => setConversations(unwrapData(resp) ?? [])).catch(() => {});
     }).catch(() => {});
   };
 

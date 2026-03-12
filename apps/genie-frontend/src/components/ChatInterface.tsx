@@ -1,13 +1,10 @@
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useRef, useLayoutEffect } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { TypingIndicator } from "./TypingIndicator";
-import { Bot, Sparkles, PanelLeft, Plus, Brain } from "lucide-react";
+import { Bot, PanelLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileAttachment } from "@/services/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 
 export interface Message {
@@ -21,15 +18,14 @@ export interface Message {
 }
 
 export interface AgentExecutedResult {
-  agent_id: number;
+  agent_id: string;
   agent_name: string;
-  agent_status: boolean;
-  agent_type?: string;
+  agent_status: string;
   completed_at?: string;
   started_at?: string;
-  response_message?: string[];
-  response_error?: string | null;
   query?: string;
+  response?: Record<string, any> | null;
+  response_error?: string | null;
 }
 
 type ChatInterfaceProps = {
@@ -49,9 +45,6 @@ export const ChatInterface = ({
   onNewChat,
   onSendMessage,
 }: ChatInterfaceProps) => {
-  const [agentDialogOpen, setAgentDialogOpen] = useState(false);
-  const [agentDialogResults, setAgentDialogResults] = useState<AgentExecutedResult[] | null>(null);
-  const [activeAgentTab, setActiveAgentTab] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -90,21 +83,24 @@ export const ChatInterface = ({
     };
   }, [messages.length]);
 
-  const openAgentDialog = (results: AgentExecutedResult[], activeAgentName?: string) => {
-    setAgentDialogResults(results);
-    setActiveAgentTab(activeAgentName ?? (results?.[0]?.agent_name ?? null));
-    setAgentDialogOpen(true);
-  };
-
   // Adapter to map ChatInput's File[] to FileAttachment[] expected by onSendMessage
-  const handleOnSendFromInput = (content: string, files?: File[], optionalAgent?: string) => {
-    const attachments = files?.map((file) => ({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      path: URL.createObjectURL(file),
-    })) as FileAttachment[] | undefined;
+  const handleOnSendFromInput = (content: string, files?: File[], optionalAgent?: string, uploadedFiles?: any[]) => {
+    // Use uploaded file metadata if available, otherwise fall back to local previews
+    const attachments: FileAttachment[] | undefined = uploadedFiles && uploadedFiles.length > 0
+      ? uploadedFiles.map((u: any) => ({
+          id: u.id,
+          name: u.name,
+          size: u.size,
+          type: u.type,
+          path: u.path,
+        }))
+      : files?.map((file) => ({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          path: URL.createObjectURL(file),
+        }));
     onSendMessage(content, attachments, optionalAgent);
   };
 
@@ -160,6 +156,7 @@ export const ChatInterface = ({
             <div
               ref={scrollContainerRef}
               className="flex-1 overflow-y-auto px-4 py-4 min-h-0"
+              style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}
             >
               <div className="max-w-3xl mx-auto space-y-4">
                 {messages.length === 0 ? (
@@ -206,35 +203,15 @@ export const ChatInterface = ({
                 ) : (
                   <>
                     {messages.map((message) => (
-                      <div key={message.id} className="space-y-2">
+                      <div key={message.id}>
                         <ChatMessage
                           role={message.role}
                           content={message.content}
                           isStreaming={message.isStreaming}
                           files={message.files}
                           createdAtMs={message.createdAtMs}
+                          agentResults={message.agentResults}
                         />
-                        {message.agentResults && message.agentResults.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {message.agentResults.map((ar, ai) => (
-                              <div key={`${message.id}-agent-${ai}`} className="flex items-center gap-2">
-                                {(ar.response_message && ar.response_message.length > 0
-                                  ? ar.response_message
-                                  : ["View results"]).map((_, mi) => (
-                                  <Button
-                                    key={`${message.id}-agent-${ai}-msg-${mi}`}
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-border"
-                                    onClick={() => openAgentDialog(message.agentResults!, ar.agent_name)}
-                                  >
-                                    View {ar.agent_name} result {mi + 1}
-                                  </Button>
-                                ))}
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     ))}
                     {isTyping && <TypingIndicator />}
@@ -244,61 +221,9 @@ export const ChatInterface = ({
               </div>
             </div>
 
-            {/* Agent Results Dialog */}
-            <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
-              <DialogContent className="max-w-3xl w-[95vw] max-h-[85vh] overflow-hidden">
-                <DialogHeader>
-                  <DialogTitle>Executed Agents</DialogTitle>
-                  <DialogDescription>Select a tab to view each agent's output.</DialogDescription>
-                </DialogHeader>
-                {agentDialogResults && agentDialogResults.length > 0 ? (
-                  <Tabs value={activeAgentTab ?? undefined} onValueChange={setActiveAgentTab} defaultValue={agentDialogResults[0]?.agent_name}>
-                    <TabsList className="mb-3 sticky top-0 bg-background z-10">
-                      {agentDialogResults.map((ar) => (
-                        <TabsTrigger key={ar.agent_name} value={ar.agent_name}>
-                          {ar.agent_name}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                    <div className="max-h-[65vh] overflow-y-auto pr-1">
-                      {agentDialogResults.map((ar, idx) => (
-                        <TabsContent key={`${ar.agent_name}-${idx}`} value={ar.agent_name}>
-                          <Card className="border-border bg-card/70">
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-base flex items-center gap-2">
-                                <Brain className="h-4 w-4 text-primary" /> {ar.agent_name}
-                              </CardTitle>
-                              <CardDescription>
-                                {(ar.agent_type || "Agent")} {ar.agent_status ? "• Succeeded" : "• Failed"}
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent className="pt-0 space-y-3">
-                              {ar.response_error ? (
-                                <p className="text-sm text-destructive">Error: {ar.response_error}</p>
-                              ) : (
-                                <div className="space-y-2 text-sm">
-                                  {(ar.response_message ?? ["No message provided"]).map((m, i) => (
-                                    <pre key={i} className="whitespace-pre-wrap bg-muted/60 p-2 rounded border border-border text-foreground/90 text-xs">
-{m}
-                                    </pre>
-                                  ))}
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        </TabsContent>
-                      ))}
-                    </div>
-                  </Tabs>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No agent results available.</p>
-                )}
-              </DialogContent>
-            </Dialog>
-
             {/* Input Area only when messages exist */}
             {messages.length > 0 && (
-              <div className="sticky bottom-4 w-full px-4">
+              <div className="sticky bottom-1 w-full px-4">
                 <ChatInput onSend={handleOnSendFromInput} isLoading={isTyping} />
               </div>
             )}

@@ -42,7 +42,7 @@ export const SearchResults = () => {
   };
 
   return (
-    <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+    <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-sm text-foreground">

@@ -161,7 +161,7 @@ export function ChatPage() {
         </div>
 
         {/* Chat area */}
-        <div className="flex-1 overflow-y-auto px-6 py-8">
+        <div className="flex-1 overflow-y-auto px-6 py-8" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
           {messages.length === 0 ? (
             <div className="max-w-3xl mx-auto">
               <h1 className="text-4xl font-bold text-gray-800 mb-2">

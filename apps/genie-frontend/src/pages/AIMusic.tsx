@@ -68,7 +68,7 @@ export default function AIPodsPage({ isSidebarOpen, onToggleSidebar }: PageProps
     try {
       setIsGenerating(true);
       const resp = await apiRequest<any>({
-        url: '/chat/execute/generate-audio',
+        url: '/chats/execute/generate-audio',
         method: 'POST',
         isAuth: true,
         payload: { query: prompt },
@@ -341,7 +341,7 @@ export default function AIPodsPage({ isSidebarOpen, onToggleSidebar }: PageProps
             </Button>
           </div>
 
-          <div className="h-full overflow-y-auto p-8 relative">
+          <div className="h-full overflow-y-auto p-8 relative" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
             {/* Song detail popup via shared component */}
             <AIMediaPopup
               open={!!selectedSong}

@@ -102,7 +102,7 @@ export default function AvailableAgents({ isSidebarOpen, onToggleSidebar }: Avai
           </Button>
         </div>
 
-        <div className="h-full overflow-y-auto px-6 py-6">
+        <div className="h-full overflow-y-auto px-6 py-6" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
           <div className="max-w-6xl mx-auto">
             <h1 className="text-3xl font-bold text-foreground">Available Agents</h1>
             <p className="text-sm text-muted-foreground mt-1 mb-6">

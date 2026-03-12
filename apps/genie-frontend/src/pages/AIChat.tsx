@@ -34,7 +34,7 @@ export default function AIChatDemoPage({ isSidebarOpen, onToggleSidebar }: PageP
           </Button>
         </div>
 
-        <div className="h-full overflow-y-auto px-6 py-6">
+        <div className="h-full overflow-y-auto px-6 py-6" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center gap-3 mb-2">
               <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center">

@@ -35,7 +35,7 @@ export default function AIVideoPage({ isSidebarOpen, onToggleSidebar }: PageProp
     try {
       setIsGenerating(true);
       const resp = await apiRequest<any>({
-        url: '/chat/execute/generate-video',
+        url: '/chats/execute/generate-video',
         method: 'POST',
         isAuth: true,
         payload: { query: prompt, video_model: "veo-3.1-fast-generate-preview" },
@@ -152,7 +152,7 @@ export default function AIVideoPage({ isSidebarOpen, onToggleSidebar }: PageProp
             </Button>
           </div>
 
-          <div className="h-full overflow-y-auto p-8 relative">
+          <div className="h-full overflow-y-auto p-8 relative" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
           {/* Video modal */}
           <AIMediaPopup
             open={!!selectedVideo}

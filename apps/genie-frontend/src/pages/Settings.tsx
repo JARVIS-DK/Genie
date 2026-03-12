@@ -48,7 +48,7 @@ export default function SettingsPage({ isSidebarOpen, onToggleSidebar }: Setting
           </Button>
         </div>
 
-        <div className="h-full overflow-y-auto px-6 py-6">
+        <div className="h-full overflow-y-auto px-6 py-6" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
           <div className="max-w-3xl mx-auto">
             <h1 className="text-3xl font-bold text-foreground">Settings</h1>
             <p className="text-sm text-muted-foreground mt-1">Manage your profile and subscription</p>

@@ -63,6 +63,11 @@ var RespValidationFailure = middleware.RespValidationFailure
 var BindErrorStructure = middleware.BindErrorStructure
 var GenerateJWT = middleware.GenerateJWT
 var AuthorizationCheck = middleware.AuthorizationCheck
+var ValidationErrorStructure = middleware.ValidationErrorStructure
+var JsonMarshalErrorStructure = middleware.JsonMarshalErrorStructure
+var ValidationFieldStructure = middleware.ValidationFieldStructure
+var GenerateOtp = helpers.GenerateOtp
+var DecodeToken = helpers.DecodeTokenAndExtractClaims
 
 // ========== Helper Functions ==========
 

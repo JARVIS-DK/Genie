@@ -128,7 +128,7 @@ const AIImage: React.FC<PageProps> = ({ isSidebarOpen, onToggleSidebar }) => {
     try {
       setIsGenerating(true);
       const resp = await apiRequest<any>({
-        url: '/chat/execute/generate-image',
+        url: '/chats/execute/generate-image',
         method: 'POST',
         isAuth: true,
         payload: {
@@ -189,7 +189,7 @@ const AIImage: React.FC<PageProps> = ({ isSidebarOpen, onToggleSidebar }) => {
               </Button>
             </div>
 
-            <div className="h-full overflow-y-auto p-8 relative">
+            <div className="h-full overflow-y-auto p-8 relative" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
               <div className="max-w-7xl mx-auto h-full">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
@@ -253,7 +253,7 @@ const AIImage: React.FC<PageProps> = ({ isSidebarOpen, onToggleSidebar }) => {
             </Button>
           </div>
 
-          <div className="h-full overflow-y-auto p-8 relative">
+          <div className="h-full overflow-y-auto p-8 relative" style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
             <div className="max-w-7xl mx-auto h-full">
 
               {/* Empty state: no generated images */}

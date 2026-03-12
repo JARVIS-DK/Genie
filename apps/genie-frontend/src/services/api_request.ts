@@ -166,6 +166,51 @@ export function logout() {
   eraseCookie('user');
 }
 
+export async function apiUploadFiles(files: File[]): Promise<Array<{ name: string; path: string; type: string; size: number; id: string }>> {
+  const finalUrl = `${API_BASE_URL}/chats/file-upload`;
+  const headers: Record<string, string> = {};
+
+  let token = getAccessToken();
+  if (!token || isTokenExpired(token)) {
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      const resp = await apiRequest<any>({
+        url: "/user/get-access-token",
+        method: "POST",
+        payload: { refresh_token: refreshToken },
+        isAuth: false,
+      });
+      token = resp?.data?.access_token ?? null;
+      if (token) setJwtCookie('access_token', token);
+    }
+  }
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+
+  const res = await fetch(finalUrl, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `${res.status} ${res.statusText}`);
+  }
+
+  const json = await res.json();
+  const data: any[] = json?.data ?? [];
+  return data.map((d: any) => ({
+    name: d.name,
+    path: d.path,
+    type: d.type,
+    size: d.size,
+    id: d.id,
+  }));
+}
+
 function isTokenExpired(token: string | null): boolean {
   if (!token) return true;
   try {

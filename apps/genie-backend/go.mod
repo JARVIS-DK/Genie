@@ -3,7 +3,9 @@ module apps/genie-backend
 go 1.24.3
 
 require (
+	cloud.google.com/go/auth v0.17.0
 	cloud.google.com/go/texttospeech v1.14.0
+	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/labstack/echo/v4 v4.13.4
 	go.mongodb.org/mongo-driver v1.17.4
 	golang.org/x/crypto v0.46.0
@@ -17,7 +19,6 @@ replace libs/shared => ../../libs/shared
 require (
 	cel.dev/expr v0.24.0 // indirect
 	cloud.google.com/go v0.123.0 // indirect
-	cloud.google.com/go/auth v0.17.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.5.3 // indirect
@@ -27,6 +28,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.54.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.54.0 // indirect
+	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20251022180443-0feb69152e9f // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.35.0 // indirect
