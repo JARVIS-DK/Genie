@@ -53,8 +53,14 @@ func BrowserUseCreateSession(apiKey string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("id is missing or not a string in the response")
 	}
 
+	liveUrl, ok := responseMap["liveUrl"].(string)
+	if !ok {
+		return nil, fmt.Errorf("liveUrl is missing, so can't create the session")
+	}
+
 	return map[string]interface{}{
-		"session_id": id,
+		"session_id":  id,
+		"session_url": liveUrl,
 	}, nil
 }
 
