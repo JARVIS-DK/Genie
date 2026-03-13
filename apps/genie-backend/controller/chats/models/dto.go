@@ -12,6 +12,7 @@ type ExecuteRequestDto struct {
 type ExecuteResponseDto struct {
 	Message               string                  `json:"message" bson:"message"`
 	AgentsExecutedResults []AgentsExecutedResults `json:"agents_executed_results" bson:"agents_executed_results"`
+	Steps                 []Step                  `json:"steps,omitempty" bson:"steps,omitempty"`
 }
 
 type GetConversationsRequestDto struct {
@@ -29,9 +30,18 @@ type RenameConversationRequestDto struct {
 type DeleteConversationRequestDto struct {
 }
 
+type Step struct {
+	Number                 int      `json:"number" bson:"number"`
+	Status                 string   `json:"status" bson:"status"`
+	Actions                []string `json:"actions" bson:"actions"`
+	ScreenshotUrl          string   `json:"screenshot_url" bson:"screenshot_url"`
+	EvaluationPreviousGoal string   `json:"evaluation_previous_goal" bson:"evaluation_previous_goal"`
+}
+
 type ChatMessage struct {
 	Message      string                  `json:"message" bson:"message"`
 	AgentResults []AgentsExecutedResults `json:"agents_executed_results" bson:"agents_executed_results"`
+	Steps        []Step                  `json:"steps" bson:"steps"`
 	Role         string                  `json:"role" bson:"role"`
 	Files        []File                  `json:"files" bson:"files"`
 	CreatedAt    time.Time               `json:"created_at" bson:"created_at"`

@@ -22,6 +22,8 @@ func (h *handler) Route(g *echo.Group) {
 
 	// execute agents
 	g.POST("/execute", h.Execute, shared.AuthorizationCheck(jwtKey, mongoCredential), ValidateExecute)
+	g.POST("/execute/browser-use", h.ExecuteBrowserUse, shared.AuthorizationCheck(jwtKey, mongoCredential), ValidateExecute)
+	g.POST("/execute/browser-use-cancel", h.ExecuteBrowserUseCancel, shared.AuthorizationCheck(jwtKey, mongoCredential))
 
 	// file upload
 	g.POST("/file-upload", h.FileUpload, shared.AuthorizationCheck(jwtKey, mongoCredential))

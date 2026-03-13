@@ -52,6 +52,63 @@ func (h *handler) Execute(c echo.Context) error {
 	return shared.RespSuccess(c, "Chat executed successfully", serviceResponse.Data)
 }
 
+func (h *handler) ExecuteBrowserUse(c echo.Context) error {
+	origin := c.Request().Header.Get("Origin")
+	if origin == "" {
+		return shared.RespFailure(c, "Origin is required in headers", nil)
+	}
+	metaData := shared.ApiMetaData{}
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
+
+	var data models.ExecuteRequestDto
+	if req, ok := c.Get("executeRequest").(*models.ExecuteRequestDto); ok {
+		data = *req
+	} else {
+		return shared.RespFailure(c, "Invalid request body", "Could not retrieve parsed request from context")
+	}
+
+	serviceResponse, err := h.service.ExecuteBrowserUse(metaData, data)
+	if err != nil {
+		return shared.RespFailure(c, "Internal Server Error", err.Error())
+	}
+	return shared.RespSuccess(c, "Chat executed successfully", serviceResponse.Data)
+}
+
+
+func (h *handler) ExecuteBrowserUseCancel(c echo.Context) error {
+	origin := c.Request().Header.Get("Origin")
+	if origin == "" {
+		return shared.RespFailure(c, "Origin is required in headers", nil)
+	}
+	metaData := shared.ApiMetaData{}
+	shared.JsonMarshaller(c.Get("metaData"), &metaData)
+
+	var reqBody struct {
+		TaskId         string `json:"task_id"`
+		ConversationId string `json:"conversation_id"`
+		Message        string `json:"message"`
+	}
+	if err := c.Bind(&reqBody); err != nil {
+		return shared.RespFailure(c, "Invalid request body", err.Error())
+	}
+
+	if reqBody.TaskId == "" {
+		return shared.RespFailure(c, "Task ID is required", nil)
+	}
+
+	data := models.ExecuteRequestDto{
+		Message:        reqBody.Message,
+		ConversationId: reqBody.ConversationId,
+		OptionalAgent:  "browser_use",
+	}
+
+	serviceResponse, err := h.service.ExecuteBrowserUseCancel(metaData, data, reqBody.TaskId)
+	if err != nil {
+		return shared.RespFailure(c, "Internal Server Error", err.Error())
+	}
+	return shared.RespSuccess(c, "Browser use task cancelled successfully", serviceResponse.Data)
+}
+
 func (h *handler) GetConversationHistory(c echo.Context) error {
 	origin := c.Request().Header.Get("Origin")
 	if origin == "" {

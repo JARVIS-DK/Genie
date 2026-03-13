@@ -73,6 +73,11 @@ func UpdateChatHistory(metaData shared.ApiMetaData, request models.ExecuteReques
 		incomingFiles = append(incomingFiles, f)
 	}
 
+	botName := "assistant"
+	if request.OptionalAgent == "browser_use" {
+		botName = "browser_use"
+	}
+
 	UserMessage := models.ChatMessage{
 		Message:      request.Message,
 		AgentResults: []models.AgentsExecutedResults{},
@@ -85,7 +90,8 @@ func UpdateChatHistory(metaData shared.ApiMetaData, request models.ExecuteReques
 	BotMessage := models.ChatMessage{
 		Message:      response.Message,
 		AgentResults: response.AgentsExecutedResults,
-		Role:         "assistant",
+		Steps:        response.Steps,
+		Role:         botName,
 		Files:        []models.File{},
 		CreatedAt:    Time,
 		UpdatedAt:    Time,

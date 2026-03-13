@@ -2,6 +2,7 @@ package agents
 
 import (
 	"apps/genie-backend/controller/chats/agents/prompts"
+	sub_agents "apps/genie-backend/controller/chats/agents/sub_agents"
 	"apps/genie-backend/controller/chats/llm"
 	"apps/genie-backend/controller/chats/models"
 	"fmt"
@@ -190,5 +191,95 @@ func Orchestrator(data models.ExecuteRequestDto, db shared.MongoRepositoryFuncti
 		Message:               finalMessage,
 		AgentsExecutedResults: agentResults,
 	}
+	return finalResponse, nil
+}
+
+func OrchestrateBrowserUse(task string, db shared.MongoRepositoryFunctions) (map[string]interface{}, error) {
+
+	apiKey, err := llm.GetApiKey("BROWSER_USE", db)
+	if err != nil {
+		shared.NormalPrint("GetApiKey Error:", err)
+		return nil, err
+	}
+	shared.NormalPrint("GetApiKey Response:", apiKey)
+
+	createSessionResponse, err := sub_agents.BrowserUseCreateSession(apiKey)
+	if err != nil {
+		shared.NormalPrint("BrowserUseCreateSession Error:", err)
+		return nil, err
+	}
+	shared.NormalPrint("BrowserUseCreateSession Response:", createSessionResponse)
+
+	createTaskResponse, err := sub_agents.BrowserUseCreateTask(task, createSessionResponse["session_id"].(string), apiKey)
+	if err != nil {
+		shared.NormalPrint("BrowserUseCreateTask Error:", err)
+		return nil, err
+	}
+	shared.NormalPrint("BrowserUseCreateTask Response:", createTaskResponse)
+
+	sessionID := createTaskResponse["session_id"].(string)
+
+	finalResponse := make(map[string]interface{})
+	finalResponse["session_id"] = sessionID
+
+	var finalStatusResponse map[string]interface{}
+	var steps interface{}
+
+	isCreated := false
+
+	for i := 0; i < 100; i++ {
+		// Wait before checking status to avoid hammering the API
+		time.Sleep(2 * time.Second)
+
+		if !isCreated {
+			statusResp, err := sub_agents.BrowserUseGetTaskStatus(sessionID, apiKey)
+			if err != nil {
+				shared.NormalPrint("BrowserUseGetTaskStatus Error:", err)
+				return nil, err
+			}
+			shared.NormalPrint("BrowserUseGetTaskStatus Response:", statusResp)
+
+			if statusResp["status"].(string) == "created" || statusResp["status"].(string) == "started" {
+				isCreated = true
+			}
+			continue
+		}
+
+		// If it's done, we also need to get the final task details to get the steps
+		getTaskResponse, err := sub_agents.BrowserUseGetTask(sessionID, apiKey)
+		if err != nil {
+			shared.NormalPrint("BrowserUseGetTask Error:", err)
+			return nil, err
+		}
+		shared.NormalPrint("BrowserUseGetTask Response:", getTaskResponse)
+
+		if getTaskResponse["status"].(string) == "completed" || getTaskResponse["status"].(string) == "stopped" || getTaskResponse["status"].(string) == "finished" {
+			steps = getTaskResponse["steps"]
+			break
+		}
+
+	}
+
+	// In case the loop exhausted without finishing, grab the final status
+	if finalStatusResponse == nil {
+		statusResp, err := sub_agents.BrowserUseGetTaskStatus(sessionID, apiKey)
+		if err != nil {
+			shared.NormalPrint("BrowserUseGetTaskStatus Error:", err)
+			return nil, err
+		}
+		shared.NormalPrint("BrowserUseGetTaskStatus Response:", statusResp)
+		finalStatusResponse = statusResp
+	}
+
+	if steps != nil {
+		finalResponse["steps"] = steps
+	}
+
+	if finalStatusResponse != nil {
+		finalResponse["status"] = finalStatusResponse["status"]
+		finalResponse["output"] = finalStatusResponse["output"]
+		finalResponse["is_success"] = finalStatusResponse["is_success"]
+	}
+
 	return finalResponse, nil
 }
