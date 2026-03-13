@@ -4,6 +4,7 @@ import (
 	env "apps/genie-backend/config"
 	"apps/genie-backend/controller/chats/agents/prompts"
 	"apps/genie-backend/controller/chats/llm"
+	"apps/genie-backend/controller/chats/models"
 	"errors"
 	"fmt"
 	"libs/shared"
@@ -16,9 +17,14 @@ type GeminiUrlContextRequest struct {
 	IsWebSearch bool     `json:"is_web_search"`
 }
 
-func GeminiUrlContext(data GeminiUrlContextRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData) (shared.ResponseStruct, error) {
+func GeminiUrlContext(data GeminiUrlContextRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, sw ...*models.StreamWriter) (shared.ResponseStruct, error) {
+	var w *models.StreamWriter
+	if len(sw) > 0 {
+		w = sw[0]
+	}
 	fmt.Println("GeminiUrlContext Started", data)
 
+	SendStep(w, "URL Context", "Crawling through the pages...")
 	botApiKey, err := llm.GetApiKey("URL_CONTEXT", db)
 	if err != nil {
 		shared.PrettyPrint("GeminiUrlContext: Failed to get URL_CONTEXT API key", err)
@@ -68,6 +74,7 @@ func GeminiUrlContext(data GeminiUrlContextRequest, db shared.MongoRepositoryFun
 		},
 	}
 
+	SendStep(w, "URL Context", "Extracting the good stuff...")
 	shared.PrettyPrint("GeminiUrlContext: Calling Gemini URL Context API", geminiPayload)
 
 	apiRequest := shared.ApiRequestDto{
@@ -137,6 +144,7 @@ func GeminiUrlContext(data GeminiUrlContextRequest, db shared.MongoRepositoryFun
 		return shared.ResponseStruct{Data: nil, Error: errors.New("url context returned no results"), Status: false}, nil
 	}
 
+	SendStep(w, "URL Context", "Distilling the insights...")
 	shared.PrettyPrint("GeminiUrlContext: Response Text", responseText)
 
 	fmt.Println("GeminiUrlContext Ended")

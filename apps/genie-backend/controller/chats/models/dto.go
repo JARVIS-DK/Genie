@@ -1,6 +1,40 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"sync"
+	"time"
+)
+
+// StreamChunk is the SSE chunk sent to the client during streaming.
+type StreamChunk struct {
+	AgentName    string      `json:"agent_name"`
+	AgentResults interface{} `json:"agent_results"`
+	Message      string      `json:"message"`
+	Status       string      `json:"status"` // STARTED, INPROGRESS, COMPLETED
+}
+
+// StreamWriter provides a thread-safe way to write SSE events to the response.
+type StreamWriter struct {
+	Writer  io.Writer
+	Flusher interface{ Flush() }
+	Mu      sync.Mutex
+}
+
+func (sw *StreamWriter) Send(chunk StreamChunk) {
+	data, err := json.Marshal(chunk)
+	if err != nil {
+		return
+	}
+	sw.Mu.Lock()
+	defer sw.Mu.Unlock()
+	fmt.Fprintf(sw.Writer, "data: %s\n\n", data)
+	if sw.Flusher != nil {
+		sw.Flusher.Flush()
+	}
+}
 
 type ExecuteRequestDto struct {
 	Message        string `json:"message"`

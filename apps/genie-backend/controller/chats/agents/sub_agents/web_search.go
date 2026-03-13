@@ -3,6 +3,7 @@ package sub_agents
 import (
 	"apps/genie-backend/controller/chats/agents/prompts"
 	"apps/genie-backend/controller/chats/llm"
+	"apps/genie-backend/controller/chats/models"
 	"errors"
 	"fmt"
 	"libs/shared"
@@ -15,9 +16,14 @@ type GeminiWebSearchRequest struct {
 	Query string `json:"query"`
 }
 
-func GeminiWebSearch(data GeminiWebSearchRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData) (shared.ResponseStruct, error) {
+func GeminiWebSearch(data GeminiWebSearchRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, sw ...*models.StreamWriter) (shared.ResponseStruct, error) {
+	var w *models.StreamWriter
+	if len(sw) > 0 {
+		w = sw[0]
+	}
 	shared.PrettyPrint("GeminiWebSearch Started", data)
 
+	SendStep(w, "Web Search", "Scouring the web...")
 	botApiKey, err := llm.GetApiKey("URL_CONTEXT", db)
 	if err != nil {
 		shared.PrettyPrint("GeminiWebSearch: Failed to get WEB_SEARCH API key", err)
@@ -57,6 +63,7 @@ func GeminiWebSearch(data GeminiWebSearchRequest, db shared.MongoRepositoryFunct
 	}
 
 	shared.PrettyPrint("GeminiWebSearch: Calling Gemini API with google_search", payload)
+	SendStep(w, "Web Search", "Plundering the web for answers...")
 
 	apiResp, err := shared.APIRequestComponentProcessor(apiRequest)
 	if err != nil {
@@ -125,6 +132,7 @@ func GeminiWebSearch(data GeminiWebSearchRequest, db shared.MongoRepositoryFunct
 		return shared.ResponseStruct{Data: nil, Error: errors.New("web search returned no text output"), Status: false}, errors.New("web search returned no text output")
 	}
 
+	SendStep(w, "Web Search", "Piecing together the findings...")
 	shared.PrettyPrint("GeminiWebSearch: Response", message)
 	shared.PrettyPrint("GeminiWebSearch Ended", nil)
 

@@ -14,6 +14,7 @@ export interface Message {
   isStreaming?: boolean;
   files?: FileAttachment[];
   agentResults?: AgentExecutedResult[];
+  streamingAgents?: StreamingAgent[];
   createdAtMs?: number;
 }
 
@@ -28,9 +29,18 @@ export interface AgentExecutedResult {
   response_error?: string | null;
 }
 
+export interface StreamingAgent {
+  agent_name: string;
+  status: "STARTED" | "INPROGRESS" | "COMPLETED";
+  message: string;
+  messages: string[];
+  agent_results?: any;
+}
+
 type ChatInterfaceProps = {
   messages: Message[];
   isTyping: boolean;
+  streamingStatus?: string;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
   onNewChat: () => void;
@@ -40,6 +50,7 @@ type ChatInterfaceProps = {
 export const ChatInterface = ({
   messages,
   isTyping,
+  streamingStatus,
   isSidebarOpen,
   onToggleSidebar,
   onNewChat,
@@ -202,19 +213,32 @@ export const ChatInterface = ({
                   </div>
                 ) : (
                   <>
-                    {messages.map((message) => (
-                      <div key={message.id}>
-                        <ChatMessage
-                          role={message.role}
-                          content={message.content}
-                          isStreaming={message.isStreaming}
-                          files={message.files}
-                          createdAtMs={message.createdAtMs}
-                          agentResults={message.agentResults}
-                        />
-                      </div>
-                    ))}
-                    {isTyping && <TypingIndicator />}
+                    {messages.map((message) => {
+                      // Hide empty assistant placeholder that has no content and no streaming agents yet
+                      if (
+                        message.role === "assistant" &&
+                        !message.content &&
+                        (!message.streamingAgents || message.streamingAgents.length === 0)
+                      ) {
+                        return null;
+                      }
+                      return (
+                        <div key={message.id}>
+                          <ChatMessage
+                            role={message.role}
+                            content={message.content}
+                            isStreaming={message.isStreaming}
+                            files={message.files}
+                            createdAtMs={message.createdAtMs}
+                            agentResults={message.agentResults}
+                            streamingAgents={message.streamingAgents}
+                          />
+                        </div>
+                      );
+                    })}
+                    {isTyping && !messages.some((m) => m.isStreaming && m.streamingAgents && m.streamingAgents.length > 0) && (
+                      <TypingIndicator status={streamingStatus} />
+                    )}
                   </>
                 )}
                 <div ref={messagesEndRef} />

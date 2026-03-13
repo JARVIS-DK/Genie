@@ -2,6 +2,7 @@ package sub_agents
 
 import (
 	"apps/genie-backend/controller/chats/llm"
+	"apps/genie-backend/controller/chats/models"
 	"errors"
 	"fmt"
 	"libs/shared"
@@ -14,9 +15,14 @@ type GeminiDeepResearchRequest struct {
 	Url          string `json:"url"`
 }
 
-func GeminiDeepResearch(data GeminiDeepResearchRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData) (shared.ResponseStruct, error) {
+func GeminiDeepResearch(data GeminiDeepResearchRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, sw ...*models.StreamWriter) (shared.ResponseStruct, error) {
+	var w *models.StreamWriter
+	if len(sw) > 0 {
+		w = sw[0]
+	}
 	fmt.Println("GeminiDeepResearch Started", data)
 
+	SendStep(w, "Deep Research", "Diving into the rabbit hole...")
 	botApiKey, err := llm.GetApiKey("JINA_DEEP_SEARCH", db)
 	if err != nil {
 		shared.PrettyPrint("GeminiDeepResearch: Failed to get DEEP_RESEARCH API key", err)
@@ -50,6 +56,7 @@ func GeminiDeepResearch(data GeminiDeepResearchRequest, db shared.MongoRepositor
 		"reasoning_effort": "medium",
 	}
 
+	SendStep(w, "Deep Research", "Excavating knowledge from the depths...")
 	shared.PrettyPrint("GeminiDeepResearch: Calling Jina DeepSearch API", payload)
 
 	apiRequest := shared.ApiRequestDto{
@@ -111,6 +118,7 @@ func GeminiDeepResearch(data GeminiDeepResearchRequest, db shared.MongoRepositor
 		return shared.ResponseStruct{Data: nil, Error: errors.New("deep research returned no text output"), Status: false}, nil
 	}
 
+	SendStep(w, "Deep Research", "Compiling the research report...")
 	shared.PrettyPrint("GeminiDeepResearch: Response Text", responseText)
 	fmt.Println("GeminiDeepResearch Ended")
 

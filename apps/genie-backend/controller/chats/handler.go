@@ -5,6 +5,7 @@ import (
 	"apps/genie-backend/controller/chats/models"
 	"fmt"
 	"libs/shared"
+	"net/http"
 	"path/filepath"
 
 	"github.com/google/uuid"
@@ -45,11 +46,46 @@ func (h *handler) Execute(c echo.Context) error {
 		return shared.RespFailure(c, "Invalid request body", "Could not retrieve parsed request from context")
 	}
 
+	// Branch: streaming vs normal
+	if c.QueryParam("is_stream") == "true" {
+		return h.executeStream(c, metaData, data)
+	}
+
 	serviceResponse, err := h.service.Execute(metaData, data)
 	if err != nil {
 		return shared.RespFailure(c, "Internal Server Error", err.Error())
 	}
 	return shared.RespSuccess(c, "Chat executed successfully", serviceResponse.Data)
+}
+
+func (h *handler) executeStream(c echo.Context, metaData shared.ApiMetaData, data models.ExecuteRequestDto) error {
+	c.Response().Header().Set("Content-Type", "text/event-stream")
+	c.Response().Header().Set("Cache-Control", "no-cache")
+	c.Response().Header().Set("Connection", "keep-alive")
+	c.Response().Header().Set("X-Accel-Buffering", "no")
+	c.Response().WriteHeader(http.StatusOK)
+
+	flusher, ok := c.Response().Writer.(http.Flusher)
+	if !ok {
+		return shared.RespFailure(c, "Streaming not supported", nil)
+	}
+	flusher.Flush()
+
+	sw := &models.StreamWriter{
+		Writer:  c.Response().Writer,
+		Flusher: flusher,
+	}
+
+	err := h.service.ExecuteStream(metaData, data, sw)
+	if err != nil {
+		sw.Send(models.StreamChunk{
+			AgentName: "orchestrator",
+			Message:   err.Error(),
+			Status:    "COMPLETED",
+		})
+	}
+
+	return nil
 }
 
 func (h *handler) ExecuteBrowserUse(c echo.Context) error {

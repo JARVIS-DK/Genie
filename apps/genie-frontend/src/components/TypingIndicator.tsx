@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export const TypingIndicator = () => {
+export const TypingIndicator = ({ status }: { status?: string }) => {
   const phrases = [
     "Thinking…",
     "Generating…",
@@ -18,6 +18,8 @@ export const TypingIndicator = () => {
     return () => clearInterval(id);
   }, []);
 
+  const displayText = status || phrases[index];
+
   return (
     <div className="flex w-full justify-start animate-slide-up">
       <div className="max-w-[80%] rounded-xl px-4 py-2.5 bg-[hsl(var(--chat-assistant-bg))] border border-border shadow-[var(--shadow-message)] flex items-center gap-3">
@@ -26,7 +28,7 @@ export const TypingIndicator = () => {
           <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse-soft" style={{ animationDelay: "150ms" }} />
           <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse-soft" style={{ animationDelay: "300ms" }} />
         </div>
-        <span className="text-xs text-muted-foreground select-none">{phrases[index]}</span>
+        <span className="text-xs text-muted-foreground select-none">{displayText}</span>
       </div>
     </div>
   );

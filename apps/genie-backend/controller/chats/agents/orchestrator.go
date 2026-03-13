@@ -194,6 +194,231 @@ func Orchestrator(data models.ExecuteRequestDto, db shared.MongoRepositoryFuncti
 	return finalResponse, nil
 }
 
+// OrchestratorStream is the streaming variant of Orchestrator.
+// It sends SSE chunks via the StreamWriter as agents progress.
+// Called only when the client requests is_stream=true.
+// agentDisplayName maps raw tool/function names to user-friendly display names
+// that match the names used by sub-agents in their SendStep calls.
+var agentDisplayName = map[string]string{
+	"image_generation": "Image Generation",
+	"video_generation": "Video Generation",
+	"audio_generation": "Audio Generation",
+	"code_execution":   "Code Execution",
+	"url_context":      "URL Context",
+	"deep_research":    "Deep Research",
+	"web_search":       "Web Search",
+}
+
+func displayName(raw string) string {
+	if dn, ok := agentDisplayName[raw]; ok {
+		return dn
+	}
+	return raw
+}
+
+func OrchestratorStream(data models.ExecuteRequestDto, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, sw *models.StreamWriter) (models.ExecuteResponseDto, error) {
+
+	toolSelectionPrompt := prompts.DecomposeToolSelectionPrompt
+	finalResponsePrompt := prompts.DecomposeFinalResponsePrompt
+	toolCalls := prompts.DecomposeToolCalls
+
+	optionalAgent := strings.ToLower(data.OptionalAgent)
+	if optionalAgent != "" {
+		if optionalTools, ok := prompts.DecomposeOptionalToolCalls[optionalAgent]; ok {
+			toolCalls = optionalTools
+		}
+	}
+
+	// --- STARTED: classifying ---
+	sw.Send(models.StreamChunk{
+		AgentName: "orchestrator",
+		Message:   "Classifying query...",
+		Status:    "STARTED",
+	})
+
+	apiKey, err := llm.GetApiKey("GENERAL_CHATBOT", db)
+	if err != nil {
+		sw.Send(models.StreamChunk{AgentName: "orchestrator", Message: err.Error(), Status: "COMPLETED"})
+		return models.ExecuteResponseDto{Message: err.Error()}, err
+	}
+
+	classifierModel := env.GlobalEnv["GOOGLE_GEMINI_GENERAL_CHAT_MODEL"].(string)
+	classifierPayload := llm.GeminiRequest{
+		Query:        data.Message,
+		Prompt:       prompts.GenericQueryClassifierPrompt,
+		ToolCalls:    prompts.GenericQueryClassifierToolCalls,
+		ApiKey:       apiKey,
+		Model:        classifierModel,
+		ToolCallMode: "AUTO",
+	}
+
+	classifierResp, classifierErr := llm.Gemini(classifierPayload, db, metaData)
+	if classifierErr == nil && len(classifierResp.ToolCalls) == 0 && classifierResp.Message != "" {
+		sw.Send(models.StreamChunk{
+			AgentName: "orchestrator",
+			Message:   classifierResp.Message,
+			Status:    "COMPLETED",
+		})
+		return models.ExecuteResponseDto{
+			Message:               classifierResp.Message,
+			AgentsExecutedResults: nil,
+		}, nil
+	}
+
+	// --- INPROGRESS: tool selection ---
+	sw.Send(models.StreamChunk{
+		AgentName: "orchestrator",
+		Message:   "Selecting tools...",
+		Status:    "INPROGRESS",
+	})
+
+	currentQuery := data.Message
+	allToolResults := ""
+	var resultsMu sync.Mutex
+	agentResults := []models.AgentsExecutedResults{}
+
+	orchestratorModel := env.GlobalEnv["GOOGLE_GEMINI_CHAT_MODEL"].(string)
+	orchestratorApiKey, err := llm.GetApiKey("ORCHESTRATOR", db)
+	if err != nil {
+		sw.Send(models.StreamChunk{AgentName: "orchestrator", Message: err.Error(), Status: "COMPLETED"})
+		return models.ExecuteResponseDto{Message: err.Error()}, err
+	}
+
+	for i := 0; i < 1; i++ {
+		geminiPayload := llm.GeminiRequest{
+			Query:        currentQuery,
+			Prompt:       toolSelectionPrompt,
+			ToolCalls:    toolCalls,
+			ApiKey:       orchestratorApiKey,
+			Model:        orchestratorModel,
+			ToolCallMode: "AUTO",
+		}
+
+		resp, err := llm.Gemini(geminiPayload, db, metaData)
+		if err != nil {
+			sw.Send(models.StreamChunk{AgentName: "orchestrator", Message: err.Error(), Status: "COMPLETED"})
+			return models.ExecuteResponseDto{Message: err.Error(), AgentsExecutedResults: agentResults}, err
+		}
+
+		if len(resp.ToolCalls) > 0 {
+			toolResultsMsg := "\n\nTool Execution Results:\n"
+			var wg sync.WaitGroup
+			results := make([]string, len(resp.ToolCalls))
+
+			for i, tc := range resp.ToolCalls {
+				wg.Add(1)
+				go func(index int, toolCall llm.ToolCall) {
+					defer wg.Done()
+					agentName := toolCall.FunctionName
+					dn := displayName(agentName)
+
+					sw.Send(models.StreamChunk{
+						AgentName: dn,
+						Message:   "Starting up...",
+						Status:    "STARTED",
+					})
+
+					startedAt := time.Now().UTC()
+					agentResp, err := ExecuteAgentsStream(agentName, toolCall.Args, db, metaData, sw)
+					completedAt := time.Now().UTC()
+
+					var agentRes models.AgentsExecutedResults
+					agentRes.AgentName = dn
+					agentRes.Query = currentQuery
+					agentRes.StartedAt = startedAt
+					agentRes.CompletedAt = completedAt
+
+					if err != nil {
+						agentRes.AgentStatus = "FAILED"
+						agentRes.ResponseError = err.Error()
+						results[index] = fmt.Sprintf("- Tool '%s' failed with error: %v\n", agentName, err)
+						sw.Send(models.StreamChunk{
+							AgentName: dn,
+							Message:   fmt.Sprintf("Agent failed: %v", err),
+							Status:    "COMPLETED",
+						})
+					} else {
+						isEmpty := fmt.Sprint(agentResp.Data) == "map[]" || agentResp.Data == nil
+						if isEmpty {
+							agentRes.AgentStatus = "FAILED"
+							agentRes.ResponseError = "Tool executed successfully but returned zero results/images."
+							results[index] = fmt.Sprintf("- Tool '%s' failed: Returned no results.\n", agentName)
+							sw.Send(models.StreamChunk{
+								AgentName: dn,
+								Message:   "Agent returned no results",
+								Status:    "COMPLETED",
+							})
+						} else {
+							agentRes.AgentStatus = "SUCCESS"
+							agentRes.Response = agentResp.Data
+							results[index] = fmt.Sprintf("- Tool '%s' returned: %v\n", agentName, agentResp.Data)
+							sw.Send(models.StreamChunk{
+								AgentName:    dn,
+								AgentResults: agentResp.Data,
+								Message:      "Done!",
+								Status:       "COMPLETED",
+							})
+						}
+					}
+
+					resultsMu.Lock()
+					agentResults = append(agentResults, agentRes)
+					resultsMu.Unlock()
+				}(i, tc)
+			}
+
+			wg.Wait()
+
+			for _, res := range results {
+				toolResultsMsg += res
+				allToolResults += res + "\n"
+			}
+
+			if resp.Message != "" && resp.Message != "DONE" {
+				currentQuery += "\n\nAssistant: " + resp.Message
+			}
+			currentQuery += toolResultsMsg + "\n\nGiven the above tool results, what is the next step? If the user query is satisfied or you have enough info, return no tool calls (or respond with 'DONE') to proceed to final response generation. If a tool failed, DO NOT retry the exact same tool call; either modify your parameters or respond with 'DONE'."
+		} else {
+			break
+		}
+	}
+
+	// --- Final response generation ---
+	sw.Send(models.StreamChunk{
+		AgentName: "orchestrator",
+		Message:   "Generating final response...",
+		Status:    "INPROGRESS",
+	})
+
+	finalQuery := currentQuery + "\n\nBased on all the information gathered above, please provide the final response to the user query."
+	finalPrompt := strings.Replace(finalResponsePrompt, "[TOOL_EXECUTION_RESULTS]", allToolResults, 1)
+
+	finalPayload := llm.GeminiRequest{
+		Query:  finalQuery,
+		Prompt: finalPrompt,
+		ApiKey: apiKey,
+	}
+
+	finalResp, err := llm.Gemini(finalPayload, db, metaData)
+	if err != nil {
+		sw.Send(models.StreamChunk{AgentName: "orchestrator", Message: err.Error(), Status: "COMPLETED"})
+		return models.ExecuteResponseDto{Message: err.Error(), AgentsExecutedResults: agentResults}, err
+	}
+
+	finalResponse := models.ExecuteResponseDto{
+		Message:               finalResp.Message,
+		AgentsExecutedResults: agentResults,
+	}
+
+	sw.Send(models.StreamChunk{
+		AgentName: "orchestrator",
+		Message:   finalResp.Message,
+		Status:    "COMPLETED",
+	})
+
+	return finalResponse, nil
+}
+
 func OrchestrateBrowserUse(task string, db shared.MongoRepositoryFunctions) (map[string]interface{}, error) {
 
 	apiKey, err := llm.GetApiKey("BROWSER_USE", db)

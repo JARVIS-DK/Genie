@@ -2,6 +2,7 @@ package agents
 
 import (
 	sub_agents "apps/genie-backend/controller/chats/agents/sub_agents"
+	"apps/genie-backend/controller/chats/models"
 	"errors"
 	"libs/shared"
 )
@@ -109,6 +110,86 @@ func ExecuteAgents(agent string, args map[string]interface{}, db shared.MongoRep
 
 	default:
 		shared.PrettyPrint("ExecuteAgents Error", "Invalid Agent Called")
+		return shared.ResponseStruct{
+			Data:   nil,
+			Error:  errors.New("Invalid Agent"),
+			Status: false,
+		}, nil
+	}
+}
+
+// ExecuteAgentsStream is the streaming variant — passes the StreamWriter to sub-agents
+// so they can emit INPROGRESS steps. Falls back gracefully if sw is nil.
+func ExecuteAgentsStream(agent string, args map[string]interface{}, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, sw *models.StreamWriter) (shared.ResponseStruct, error) {
+	shared.PrettyPrint("ExecuteAgentsStream Input Agent Name", agent)
+	shared.PrettyPrint("ExecuteAgentsStream Input Args", args)
+
+	switch agent {
+	case "image_generation":
+		var data sub_agents.GeminiImageGenerationRequest
+		shared.JsonMarshaller(args, &data)
+		resp, err := sub_agents.GeminiImageGeneration(data, db, metaData, sw)
+		if err != nil {
+			return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+		}
+		return resp, nil
+
+	case "video_generation":
+		var data sub_agents.GeminiVideoGenerationRequest
+		shared.JsonMarshaller(args, &data)
+		resp, err := sub_agents.GeminiVideoGeneration(data, db, metaData, sw)
+		if err != nil {
+			return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+		}
+		return resp, nil
+
+	case "audio_generation":
+		var data sub_agents.GeminiAudioGenerationRequest
+		shared.JsonMarshaller(args, &data)
+		resp, err := sub_agents.GeminiAudioGeneration(data, db, metaData, sw)
+		if err != nil {
+			return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+		}
+		return resp, nil
+
+	case "code_execution":
+		var data sub_agents.GeminiCodeExecutionRequest
+		shared.JsonMarshaller(args, &data)
+		resp, err := sub_agents.GeminiCodeExecution(data, db, metaData, sw)
+		if err != nil {
+			return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+		}
+		return resp, nil
+
+	case "url_context":
+		var data sub_agents.GeminiUrlContextRequest
+		shared.JsonMarshaller(args, &data)
+		resp, err := sub_agents.GeminiUrlContext(data, db, metaData, sw)
+		if err != nil {
+			return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+		}
+		return resp, nil
+
+	case "deep_research":
+		var data sub_agents.GeminiDeepResearchRequest
+		shared.JsonMarshaller(args, &data)
+		resp, err := sub_agents.GeminiDeepResearch(data, db, metaData, sw)
+		if err != nil {
+			return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+		}
+		return resp, nil
+
+	case "web_search":
+		var data sub_agents.GeminiWebSearchRequest
+		shared.JsonMarshaller(args, &data)
+		resp, err := sub_agents.GeminiWebSearch(data, db, metaData, sw)
+		if err != nil {
+			return shared.ResponseStruct{Data: nil, Error: err, Status: false}, err
+		}
+		return resp, nil
+
+	default:
+		shared.PrettyPrint("ExecuteAgentsStream Error", "Invalid Agent Called")
 		return shared.ResponseStruct{
 			Data:   nil,
 			Error:  errors.New("Invalid Agent"),

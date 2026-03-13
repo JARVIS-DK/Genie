@@ -10,6 +10,7 @@ import (
 
 type Service interface {
 	Execute(metaData shared.ApiMetaData, data models.ExecuteRequestDto) (shared.ResponseStruct, error)
+	ExecuteStream(metaData shared.ApiMetaData, data models.ExecuteRequestDto, sw *models.StreamWriter) error
 	ExecuteBrowserUse(metaData shared.ApiMetaData, data models.ExecuteRequestDto) (shared.ResponseStruct, error)
 	ExecuteBrowserUseCancel(metaData shared.ApiMetaData, data models.ExecuteRequestDto, taskId string) (shared.ResponseStruct, error)
 	GetConversationHistory(metaData shared.ApiMetaData) (interface{}, error)
@@ -57,6 +58,19 @@ func (s *service) Execute(metaData shared.ApiMetaData, data models.ExecuteReques
 		Status: true,
 		Error:  nil,
 	}, nil
+}
+
+func (s *service) ExecuteStream(metaData shared.ApiMetaData, data models.ExecuteRequestDto, sw *models.StreamWriter) error {
+
+	resp, err := agents.OrchestratorStream(data, s.db, metaData, sw)
+	if err != nil {
+		return err
+	}
+
+	UpdateConversation(metaData, data, resp)
+	UpdateChatHistory(metaData, data, resp)
+
+	return nil
 }
 
 func (s *service) ExecuteBrowserUse(metaData shared.ApiMetaData, data models.ExecuteRequestDto) (shared.ResponseStruct, error) {

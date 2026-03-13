@@ -4,6 +4,7 @@ import (
 	env "apps/genie-backend/config"
 	"apps/genie-backend/controller/chats/agents/prompts"
 	"apps/genie-backend/controller/chats/llm"
+	"apps/genie-backend/controller/chats/models"
 	"bytes"
 	"context"
 	"errors"
@@ -30,9 +31,13 @@ type GeminiVideoGenerationRequest struct {
 	LastFrameURL     string `json:"last_frame_url"`
 }
 
-func GeminiVideoGeneration(data GeminiVideoGenerationRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData) (shared.ResponseStruct, error) {
+func GeminiVideoGeneration(data GeminiVideoGenerationRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, sw ...*models.StreamWriter) (shared.ResponseStruct, error) {
+	var w *models.StreamWriter
+	if len(sw) > 0 {
+		w = sw[0]
+	}
 
-	// --- LLM Call to enrich the video generation request ---
+	SendStep(w, "Video Generation", "Storyboarding your vision...")
 	botApiKey, err := llm.GetApiKey("VIDEO_GENERATION", db)
 	if err != nil {
 		shared.PrettyPrint("GeminiVideoGeneration: Failed to get VIDEO_GENERATION API key", err)
@@ -124,6 +129,7 @@ func GeminiVideoGeneration(data GeminiVideoGenerationRequest, db shared.MongoRep
 		return shared.ResponseStruct{Data: nil, Error: fmt.Errorf("failed to initialize genai client: %v", err), Status: false}, err
 	}
 
+	SendStep(w, "Video Generation", "Rolling the cameras...")
 	shared.PrettyPrint("Video generation started Request Data", data)
 
 	operation, err := client.Models.GenerateVideos(
@@ -142,6 +148,7 @@ func GeminiVideoGeneration(data GeminiVideoGenerationRequest, db shared.MongoRep
 		return shared.ResponseStruct{Data: nil, Error: errors.New("video generation operation is nil"), Status: false}, errors.New("video generation operation is nil")
 	}
 
+	SendStep(w, "Video Generation", "Rendering frames, hang tight...")
 	// Poll the operation status until the video is ready.
 	for operation != nil && !operation.Done {
 		log.Println("Waiting for video generation to complete...")
@@ -195,6 +202,7 @@ func GeminiVideoGeneration(data GeminiVideoGenerationRequest, db shared.MongoRep
 		}, uploadErr
 	}
 
+	SendStep(w, "Video Generation", "Putting the final cut together...")
 	shared.PrettyPrint("Generated video saved to URL", videoURL)
 
 	collectionName := model.CollectionName["VIDEO_GENERATION_HISTORY"]

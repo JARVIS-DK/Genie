@@ -4,6 +4,7 @@ import (
 	env "apps/genie-backend/config"
 	"apps/genie-backend/controller/chats/agents/prompts"
 	"apps/genie-backend/controller/chats/llm"
+	"apps/genie-backend/controller/chats/models"
 	"bytes"
 	"encoding/base64"
 	"errors"
@@ -29,10 +30,14 @@ type GeminiImageGenerationRequest struct {
 	ImageUrls      []string    `json:"image_urls"`
 }
 
-func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData) (shared.ResponseStruct, error) {
+func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, sw ...*models.StreamWriter) (shared.ResponseStruct, error) {
+	var w *models.StreamWriter
+	if len(sw) > 0 {
+		w = sw[0]
+	}
 	fmt.Println("GeminiImageGeneration Started", data)
 
-	// --- LLM Call to enrich the image generation request ---
+	SendStep(w, "Image Generation", "Dreaming up your visuals...")
 	botApiKey, err := llm.GetApiKey("IMAGE_GENERATION", db)
 	if err != nil {
 		shared.PrettyPrint("GeminiImageGeneration: Failed to get IMAGE_GENERATION API key", err)
@@ -230,6 +235,7 @@ func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRep
 		Timeout: 60,
 	}
 
+	SendStep(w, "Image Generation", "Painting pixels on the canvas...")
 	shared.PrettyPrint("GeminiImageGeneration: Calling APIRequestComponentProcessor", geminiApiURL)
 	apiResp, err := shared.APIRequestComponentProcessor(geminiApiRequest)
 	shared.PrettyPrint("GeminiImageGeneration: Finished APIRequestComponentProcessor", map[string]interface{}{"err": err, "status": apiResp.Status})
@@ -352,6 +358,7 @@ func GeminiImageGeneration(data GeminiImageGenerationRequest, db shared.MongoRep
 			responseMessage = fmt.Sprintf("%v\n%v", responseMessage, imageURL)
 		}
 	}
+	SendStep(w, "Image Generation", "Framing the masterpiece...")
 	shared.PrettyPrint("Generated images URLs", imagesURLs)
 
 	if len(imagesURLs) == 0 {

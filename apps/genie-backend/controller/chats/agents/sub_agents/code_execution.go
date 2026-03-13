@@ -4,6 +4,7 @@ import (
 	env "apps/genie-backend/config"
 	"apps/genie-backend/controller/chats/agents/prompts"
 	"apps/genie-backend/controller/chats/llm"
+	"apps/genie-backend/controller/chats/models"
 	"errors"
 	"fmt"
 	"libs/shared"
@@ -14,9 +15,14 @@ type GeminiCodeExecutionRequest struct {
 	Query string `json:"query"`
 }
 
-func GeminiCodeExecution(data GeminiCodeExecutionRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData) (shared.ResponseStruct, error) {
+func GeminiCodeExecution(data GeminiCodeExecutionRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, sw ...*models.StreamWriter) (shared.ResponseStruct, error) {
+	var w *models.StreamWriter
+	if len(sw) > 0 {
+		w = sw[0]
+	}
 	fmt.Println("GeminiCodeExecution Started", data)
 
+	SendStep(w, "Code Execution", "Booting up the sandbox...")
 	botApiKey, err := llm.GetApiKey("CODE_EXECUTION", db)
 	if err != nil {
 		shared.PrettyPrint("GeminiCodeExecution: Failed to get CODE_EXECUTION API key", err)
@@ -55,6 +61,7 @@ func GeminiCodeExecution(data GeminiCodeExecutionRequest, db shared.MongoReposit
 		},
 	}
 
+	SendStep(w, "Code Execution", "Crunching the code...")
 	shared.PrettyPrint("GeminiCodeExecution: Calling Gemini Code Execution API", geminiPayload)
 
 	apiRequest := shared.ApiRequestDto{
@@ -125,6 +132,7 @@ func GeminiCodeExecution(data GeminiCodeExecutionRequest, db shared.MongoReposit
 		return shared.ResponseStruct{Data: nil, Error: errors.New("code execution returned no results"), Status: false}, nil
 	}
 
+	SendStep(w, "Code Execution", "Wrapping up the results...")
 	shared.PrettyPrint("GeminiCodeExecution: Response Text", responseText)
 
 	fmt.Println("GeminiCodeExecution Ended")

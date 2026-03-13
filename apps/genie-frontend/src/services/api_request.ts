@@ -70,6 +70,92 @@ export async function apiRequest<TResp = any, TBody = any, TQuery = Record<strin
   return data;
 }
 
+// SSE streaming request — calls onChunk for each parsed SSE data line.
+export interface StreamChunk {
+  agent_name: string;
+  agent_results: any;
+  message: string;
+  status: "STARTED" | "INPROGRESS" | "COMPLETED";
+}
+
+export async function apiStreamRequest(opts: {
+  url: string;
+  payload: any;
+  isAuth?: boolean;
+  onChunk: (chunk: StreamChunk) => void;
+}): Promise<void> {
+  const { url, payload, isAuth = false, onChunk } = opts;
+
+  const finalUrl = `${API_BASE_URL}${url}?is_stream=true`;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+  if (isAuth) {
+    let token = getAccessToken();
+    if (!token || isTokenExpired(token)) {
+      const refreshToken = getRefreshToken();
+      if (refreshToken) {
+        const resp = await apiRequest<any>({
+          url: "/user/get-access-token",
+          method: "POST",
+          payload: { refresh_token: refreshToken },
+          isAuth: false,
+        });
+        token = resp?.data?.access_token ?? null;
+        if (token) setJwtCookie('access_token', token);
+      }
+    }
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(finalUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `${res.status} ${res.statusText}`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("ReadableStream not supported");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data: ")) continue;
+      const jsonStr = trimmed.slice(6);
+      try {
+        const chunk: StreamChunk = JSON.parse(jsonStr);
+        onChunk(chunk);
+      } catch {
+        // skip malformed lines
+      }
+    }
+  }
+
+  // Process any remaining buffer
+  if (buffer.trim().startsWith("data: ")) {
+    try {
+      const chunk: StreamChunk = JSON.parse(buffer.trim().slice(6));
+      onChunk(chunk);
+    } catch {
+      // skip
+    }
+  }
+}
+
 // Download a remote resource via backend proxy. Returns a Blob when successful.
 export async function apiDownload(opts: { url: string; payload?: any; isAuth?: boolean; headers?: Record<string,string> }) {
   const { url, payload, isAuth = false, headers = {} } = opts;

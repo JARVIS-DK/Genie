@@ -4,6 +4,7 @@ import (
 	env "apps/genie-backend/config"
 	"apps/genie-backend/controller/chats/agents/prompts"
 	"apps/genie-backend/controller/chats/llm"
+	"apps/genie-backend/controller/chats/models"
 	"context"
 	"errors"
 	"fmt"
@@ -28,9 +29,13 @@ type GeminiAudioGenerationRequest struct {
 	Language       string `json:"language"`
 }
 
-func GeminiAudioGeneration(data GeminiAudioGenerationRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData) (shared.ResponseStruct, error) {
+func GeminiAudioGeneration(data GeminiAudioGenerationRequest, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, sw ...*models.StreamWriter) (shared.ResponseStruct, error) {
+	var w *models.StreamWriter
+	if len(sw) > 0 {
+		w = sw[0]
+	}
 
-	// --- LLM Call to enrich the audio generation request ---
+	SendStep(w, "Audio Generation", "Tuning the instruments...")
 	botApiKey, err := llm.GetApiKey("AUDIO_GENERATION", db)
 	if err != nil {
 		shared.PrettyPrint("GeminiAudioGeneration: Failed to get AUDIO_GENERATION API key", err)
@@ -192,6 +197,7 @@ func GeminiAudioGeneration(data GeminiAudioGenerationRequest, db shared.MongoRep
 		defer client.Close()
 
 		voiceName := resolveVoiceName(language, data.Gender)
+		SendStep(w, "Audio Generation", "Recording the symphony...")
 		shared.PrettyPrint("Audio generation started. Query", data.Query)
 
 		req := &texttospeechpb.SynthesizeLongAudioRequest{
@@ -260,6 +266,7 @@ func GeminiAudioGeneration(data GeminiAudioGenerationRequest, db shared.MongoRep
 		}, err
 	}
 
+	SendStep(w, "Audio Generation", "Mastering the final track...")
 	shared.PrettyPrint("Success! Audio saved to GCS URL", publicURL)
 
 	return shared.ResponseStruct{
