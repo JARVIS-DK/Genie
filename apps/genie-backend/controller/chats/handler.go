@@ -103,11 +103,46 @@ func (h *handler) ExecuteBrowserUse(c echo.Context) error {
 		return shared.RespFailure(c, "Invalid request body", "Could not retrieve parsed request from context")
 	}
 
+	// Branch: streaming vs normal
+	if c.QueryParam("is_stream") == "true" {
+		return h.executeBrowserUseStream(c, metaData, data)
+	}
+
 	serviceResponse, err := h.service.ExecuteBrowserUse(metaData, data)
 	if err != nil {
 		return shared.RespFailure(c, "Internal Server Error", err.Error())
 	}
 	return shared.RespSuccess(c, "Chat executed successfully", serviceResponse.Data)
+}
+
+func (h *handler) executeBrowserUseStream(c echo.Context, metaData shared.ApiMetaData, data models.ExecuteRequestDto) error {
+	c.Response().Header().Set("Content-Type", "text/event-stream")
+	c.Response().Header().Set("Cache-Control", "no-cache")
+	c.Response().Header().Set("Connection", "keep-alive")
+	c.Response().Header().Set("X-Accel-Buffering", "no")
+	c.Response().WriteHeader(http.StatusOK)
+
+	flusher, ok := c.Response().Writer.(http.Flusher)
+	if !ok {
+		return shared.RespFailure(c, "Streaming not supported", nil)
+	}
+	flusher.Flush()
+
+	sw := &models.StreamWriter{
+		Writer:  c.Response().Writer,
+		Flusher: flusher,
+	}
+
+	err := h.service.ExecuteBrowserUseStream(metaData, data, sw)
+	if err != nil {
+		sw.Send(models.StreamChunk{
+			AgentName: "Browser Use",
+			Message:   err.Error(),
+			Status:    "COMPLETED",
+		})
+	}
+
+	return nil
 }
 
 

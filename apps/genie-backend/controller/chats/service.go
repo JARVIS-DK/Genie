@@ -12,6 +12,7 @@ type Service interface {
 	Execute(metaData shared.ApiMetaData, data models.ExecuteRequestDto) (shared.ResponseStruct, error)
 	ExecuteStream(metaData shared.ApiMetaData, data models.ExecuteRequestDto, sw *models.StreamWriter) error
 	ExecuteBrowserUse(metaData shared.ApiMetaData, data models.ExecuteRequestDto) (shared.ResponseStruct, error)
+	ExecuteBrowserUseStream(metaData shared.ApiMetaData, data models.ExecuteRequestDto, sw *models.StreamWriter) error
 	ExecuteBrowserUseCancel(metaData shared.ApiMetaData, data models.ExecuteRequestDto, taskId string) (shared.ResponseStruct, error)
 	GetConversationHistory(metaData shared.ApiMetaData) (interface{}, error)
 	GetChatHistory(metaData shared.ApiMetaData, conversationId string) (interface{}, error)
@@ -110,6 +111,37 @@ func (s *service) ExecuteBrowserUse(metaData shared.ApiMetaData, data models.Exe
 		Status: true,
 		Error:  nil,
 	}, nil
+}
+
+func (s *service) ExecuteBrowserUseStream(metaData shared.ApiMetaData, data models.ExecuteRequestDto, sw *models.StreamWriter) error {
+
+	resp, err := agents.OrchestrateBrowserUseStream(data.Message, s.db, sw)
+	if err != nil {
+		return err
+	}
+
+	message := "Browser task completed."
+	if out, ok := resp["output"].(string); ok && out != "" {
+		message = out
+	} else if status, ok := resp["status"].(string); ok && status != "" {
+		message = "Task finished with status: " + status
+	}
+
+	var parsedSteps []models.Step
+	if stepsRaw, ok := resp["steps"]; ok && stepsRaw != nil {
+		shared.JsonMarshaller(stepsRaw, &parsedSteps)
+	}
+
+	historyResp := models.ExecuteResponseDto{
+		Message:               message,
+		AgentsExecutedResults: []models.AgentsExecutedResults{},
+		Steps:                 parsedSteps,
+	}
+
+	UpdateConversation(metaData, data, historyResp)
+	UpdateChatHistory(metaData, data, historyResp)
+
+	return nil
 }
 
 func (s *service) ExecuteBrowserUseCancel(metaData shared.ApiMetaData, data models.ExecuteRequestDto, taskId string) (shared.ResponseStruct, error) {

@@ -1,7 +1,7 @@
 import React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { ArrowUp, Paperclip, Square, X, StopCircle, Mic, Globe, BrainCog, FolderCode, Loader2 } from "lucide-react";
+import { ArrowUp, Paperclip, Square, X, StopCircle, Mic, Globe, BrainCog, FolderCode, Monitor, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiUploadFiles } from "@/services/api_request";
 
@@ -464,6 +464,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
   const [showSearch, setShowSearch] = React.useState(false);
   const [showThink, setShowThink] = React.useState(false);
   const [showCanvas, setShowCanvas] = React.useState(false);
+  const [showBrowserUse, setShowBrowserUse] = React.useState(false);
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const promptBoxRef = React.useRef<HTMLDivElement>(null);
 
@@ -471,9 +472,15 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
     if (value === "search") {
       setShowSearch((prev) => !prev);
       setShowThink(false);
+      setShowBrowserUse(false);
     } else if (value === "think") {
       setShowThink((prev) => !prev);
       setShowSearch(false);
+      setShowBrowserUse(false);
+    } else if (value === "browser_use") {
+      setShowBrowserUse((prev) => !prev);
+      setShowSearch(false);
+      setShowThink(false);
     }
   };
 
@@ -575,6 +582,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
       let optionalAgent = "";
       if (showSearch) optionalAgent = "WEB_SEARCH";
       else if (showThink) optionalAgent = "DEEP_RESEARCH";
+      else if (showBrowserUse) optionalAgent = "BROWSER_USE";
       const formattedInput = input;
       onSend?.(formattedInput, files, optionalAgent, uploadedFiles);
       setInput("");
@@ -679,6 +687,8 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                     ? "Search the web..."
                     : showThink
                     ? "Think deeply..."
+                    : showBrowserUse
+                    ? "Tell the browser what to do..."
                     : showCanvas
                     ? "Create on canvas..."
                     : placeholder
@@ -796,6 +806,40 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                   </button>
 
                   <CustomDivider />
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleChange("browser_use")}
+                    className={cn(
+                      "rounded-full transition-all flex items-center gap-1 px-2 py-1 border h-8",
+                      showBrowserUse
+                        ? "bg-[#10B981]/15 border-[#10B981] text-[#10B981]"
+                        : "bg-transparent border-transparent text-[#9CA3AF] hover:text-[#D1D5DB]"
+                    )}
+                  >
+                    <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                      <motion.div
+                        animate={{ rotate: showBrowserUse ? 360 : 0, scale: showBrowserUse ? 1.1 : 1 }}
+                        whileHover={{ rotate: showBrowserUse ? 360 : 15, scale: 1.1, transition: { type: "spring", stiffness: 300, damping: 10 } }}
+                        transition={{ type: "spring", stiffness: 260, damping: 25 }}
+                      >
+                        <Monitor className={cn("w-4 h-4", showBrowserUse ? "text-[#10B981]" : "text-inherit")} />
+                      </motion.div>
+                    </div>
+                    <AnimatePresence>
+                      {showBrowserUse && (
+                        <motion.span
+                          initial={{ width: 0, opacity: 0 }}
+                          animate={{ width: "auto", opacity: 1 }}
+                          exit={{ width: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="text-xs overflow-hidden whitespace-nowrap text-[#10B981] flex-shrink-0"
+                        >
+                          Computer Use
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
 
                   {/* <button
                     type="button"

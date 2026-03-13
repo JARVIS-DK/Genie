@@ -12,6 +12,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   isStreaming?: boolean;
+  isBrowserUse?: boolean;
   files?: FileAttachment[];
   agentResults?: AgentExecutedResult[];
   streamingAgents?: StreamingAgent[];

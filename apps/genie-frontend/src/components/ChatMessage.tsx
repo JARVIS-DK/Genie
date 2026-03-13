@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { FileAttachment } from "@/services/api";
-import { User, Bot, Brain, FileText, Image, FileAudio, FileVideo, File, Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { User, Bot, Brain, FileText, Image, FileAudio, FileVideo, File, Loader2, CheckCircle2, AlertCircle, Sparkles, ChevronDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -21,6 +21,14 @@ interface ChatMessageProps {
 export const ChatMessage = ({ role, content, isStreaming = false, files = [], createdAtMs, agentResults, streamingAgents }: ChatMessageProps) => {
   const [displayedContent, setDisplayedContent] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isStepsCollapsed, setIsStepsCollapsed] = useState(false);
+
+  // Auto-collapse steps when streaming finishes and content is present
+  useEffect(() => {
+    if (!isStreaming && content && streamingAgents && streamingAgents.length > 0 && streamingAgents.every((sa) => sa.status === "COMPLETED")) {
+      setIsStepsCollapsed(true);
+    }
+  }, [isStreaming]);
 
   useEffect(() => {
     if (!isStreaming) {
@@ -49,6 +57,8 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [], cr
 
   const isUser = role === "user";
   const hasStreamingAgents = streamingAgents && streamingAgents.length > 0;
+  const allAgentsDone = hasStreamingAgents && streamingAgents.every((sa) => sa.status === "COMPLETED");
+  const isStepsCollapsible = allAgentsDone && !!content;
   const showOnlyThinking = !content && hasStreamingAgents;
   const ts = createdAtMs ? new Date(createdAtMs) : null;
   const tsText = ts
@@ -69,59 +79,74 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [], cr
       )}
 
       <div className={cn("max-w-[80%] flex flex-col gap-2", isUser ? "items-end" : "items-start")}>
-        {/* Streaming agents thinking trail — shown as standalone card when no content */}
+        {/* Streaming agents thinking trail — collapsible when done */}
         {hasStreamingAgents && (
           <div className="w-full rounded-xl overflow-hidden border border-border/60 bg-gradient-to-b from-muted/50 to-muted/20 backdrop-blur-sm shadow-sm">
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40 bg-muted/30">
+            <button
+              type="button"
+              className="flex items-center gap-2 px-3 py-2 border-b border-border/40 bg-muted/30 w-full text-left"
+              onClick={() => isStepsCollapsible && setIsStepsCollapsed((v) => !v)}
+              style={{ cursor: isStepsCollapsible ? "pointer" : "default" }}
+            >
               <div className="relative flex items-center justify-center h-4 w-4">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
                 {streamingAgents.some((sa) => sa.status !== "COMPLETED") && (
                   <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 )}
               </div>
-              <span className="text-[11px] font-medium text-foreground/80">Thinking</span>
-            </div>
-            <div className="divide-y divide-border/30">
-              {streamingAgents.map((sa, i) => {
-                const isRunning = sa.status === "STARTED" || sa.status === "INPROGRESS";
-                const isDone = sa.status === "COMPLETED";
-                const hasFailed = isDone && !sa.agent_results;
+              <span className="text-xs font-medium text-foreground/80">
+                {isStepsCollapsible ? `Thought for ${streamingAgents.length} step${streamingAgents.length > 1 ? "s" : ""}` : "Thinking"}
+              </span>
+              {isStepsCollapsible && (
+                <ChevronDown className={cn(
+                  "h-3 w-3 text-muted-foreground ml-auto transition-transform duration-200",
+                  isStepsCollapsed ? "-rotate-90" : "rotate-0"
+                )} />
+              )}
+            </button>
+            {!isStepsCollapsed && (
+              <div className="divide-y divide-border/30">
+                {streamingAgents.map((sa, i) => {
+                  const isRunning = sa.status === "STARTED" || sa.status === "INPROGRESS";
+                  const isDone = sa.status === "COMPLETED";
+                  const hasFailed = isDone && !sa.agent_results;
 
-                return (
-                  <div key={`stream-agent-${i}`} className="px-3 py-2">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      {isRunning ? (
-                        <Loader2 className="h-3 w-3 text-primary animate-spin flex-shrink-0" />
-                      ) : hasFailed ? (
-                        <AlertCircle className="h-3 w-3 text-red-400 flex-shrink-0" />
-                      ) : (
-                        <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
-                      )}
-                      <span className="text-xs font-medium text-foreground/90">{sa.agent_name}</span>
-                    </div>
-                    {sa.messages.length > 0 && (
-                      <div className="ml-5 space-y-0.5">
-                        {sa.messages.map((msg, mi) => {
-                          const isLatest = mi === sa.messages.length - 1 && isRunning;
-                          return (
-                            <div key={mi} className={cn(
-                              "flex items-center gap-1.5 text-[11px]",
-                              isLatest ? "text-foreground/70" : "text-muted-foreground/60"
-                            )}>
-                              <span className={cn(
-                                "h-1 w-1 rounded-full flex-shrink-0",
-                                isLatest ? "bg-primary animate-pulse" : "bg-muted-foreground/30"
-                              )} />
-                              <span>{msg}</span>
-                            </div>
-                          );
-                        })}
+                  return (
+                    <div key={`stream-agent-${i}`} className="px-3 py-2">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        {isRunning ? (
+                          <Loader2 className="h-3 w-3 text-primary animate-spin flex-shrink-0" />
+                        ) : hasFailed ? (
+                          <AlertCircle className="h-3 w-3 text-red-400 flex-shrink-0" />
+                        ) : (
+                          <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                        )}
+                        <span className="text-sm font-medium text-foreground/90">{sa.agent_name}</span>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      {sa.messages.length > 0 && (
+                        <div className="ml-5 space-y-0.5">
+                          {sa.messages.map((msg, mi) => {
+                            const isLatest = mi === sa.messages.length - 1 && isRunning;
+                            return (
+                              <div key={mi} className={cn(
+                                "flex items-center gap-1.5 text-xs",
+                                isLatest ? "text-foreground/70" : "text-muted-foreground/60"
+                              )}>
+                                <span className={cn(
+                                  "h-1.5 w-1.5 rounded-full flex-shrink-0",
+                                  isLatest ? "bg-primary animate-pulse" : "bg-muted-foreground/30"
+                                )} />
+                                <span>{msg}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

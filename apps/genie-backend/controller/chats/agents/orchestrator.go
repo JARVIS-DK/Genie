@@ -5,6 +5,7 @@ import (
 	sub_agents "apps/genie-backend/controller/chats/agents/sub_agents"
 	"apps/genie-backend/controller/chats/llm"
 	"apps/genie-backend/controller/chats/models"
+	"encoding/json"
 	"fmt"
 	"libs/shared"
 	"strings"
@@ -214,6 +215,79 @@ func displayName(raw string) string {
 		return dn
 	}
 	return raw
+}
+
+// parseActionString converts a raw action JSON string like
+// `{"navigate": {"url": "https://example.com"}}` or `{"done": {"text": "...", "success": true}}`
+// into a human-readable description.
+func parseActionString(actionStr string) string {
+	var actionMap map[string]interface{}
+	if err := json.Unmarshal([]byte(actionStr), &actionMap); err != nil {
+		return actionStr
+	}
+	for actionType, params := range actionMap {
+		switch actionType {
+		case "navigate":
+			if p, ok := params.(map[string]interface{}); ok {
+				if url, ok := p["url"].(string); ok {
+					return fmt.Sprintf("Navigating to %s", url)
+				}
+			}
+			return "Navigating..."
+		case "click":
+			if p, ok := params.(map[string]interface{}); ok {
+				if text, ok := p["text"].(string); ok && text != "" {
+					return fmt.Sprintf("Clicking \"%s\"", text)
+				}
+				if selector, ok := p["selector"].(string); ok && selector != "" {
+					return fmt.Sprintf("Clicking element %s", selector)
+				}
+			}
+			return "Clicking element"
+		case "type", "input_text":
+			if p, ok := params.(map[string]interface{}); ok {
+				if text, ok := p["text"].(string); ok {
+					preview := text
+					if len(preview) > 50 {
+						preview = preview[:50] + "..."
+					}
+					return fmt.Sprintf("Typing \"%s\"", preview)
+				}
+			}
+			return "Typing text"
+		case "scroll":
+			if p, ok := params.(map[string]interface{}); ok {
+				if dir, ok := p["direction"].(string); ok {
+					return fmt.Sprintf("Scrolling %s", dir)
+				}
+			}
+			return "Scrolling"
+		case "done":
+			if p, ok := params.(map[string]interface{}); ok {
+				if text, ok := p["text"].(string); ok && text != "" {
+					preview := text
+					if len(preview) > 80 {
+						preview = preview[:80] + "..."
+					}
+					return fmt.Sprintf("Completed: %s", preview)
+				}
+			}
+			return "Task completed"
+		case "extract_content":
+			return "Extracting page content"
+		case "wait":
+			return "Waiting..."
+		case "go_back":
+			return "Going back"
+		case "screenshot":
+			return "Taking screenshot"
+		case "switch_tab":
+			return "Switching tab"
+		default:
+			return fmt.Sprintf("Action: %s", actionType)
+		}
+	}
+	return actionStr
 }
 
 func OrchestratorStream(data models.ExecuteRequestDto, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, sw *models.StreamWriter) (models.ExecuteResponseDto, error) {
@@ -505,6 +579,197 @@ func OrchestrateBrowserUse(task string, db shared.MongoRepositoryFunctions) (map
 		finalResponse["output"] = finalStatusResponse["output"]
 		finalResponse["is_success"] = finalStatusResponse["is_success"]
 	}
+
+	return finalResponse, nil
+}
+
+// OrchestrateBrowserUseStream is the streaming variant of OrchestrateBrowserUse.
+// It sends SSE chunks via the StreamWriter at each phase so the frontend can
+// react in real-time (e.g. open the iframe as soon as the session URL arrives).
+func OrchestrateBrowserUseStream(task string, db shared.MongoRepositoryFunctions, sw *models.StreamWriter) (map[string]interface{}, error) {
+
+	sw.Send(models.StreamChunk{
+		AgentName: "Browser Use",
+		Message:   "Initializing browser session...",
+		Status:    "STARTED",
+	})
+
+	apiKey, err := llm.GetApiKey("BROWSER_USE", db)
+	if err != nil {
+		sw.Send(models.StreamChunk{AgentName: "Browser Use", Message: err.Error(), Status: "COMPLETED"})
+		return nil, err
+	}
+
+	// 1. Create session — sends back session_url for iframe
+	sw.Send(models.StreamChunk{
+		AgentName: "Browser Use",
+		Message:   "Creating browser session...",
+		Status:    "INPROGRESS",
+	})
+
+	createSessionResponse, err := sub_agents.BrowserUseCreateSession(apiKey)
+	if err != nil {
+		sw.Send(models.StreamChunk{AgentName: "Browser Use", Message: fmt.Sprintf("Session creation failed: %v", err), Status: "COMPLETED"})
+		return nil, err
+	}
+
+	sessionId := createSessionResponse["session_id"].(string)
+	sessionUrl := createSessionResponse["session_url"].(string)
+
+	// Send the session URL so the frontend can open the iframe immediately
+	sw.Send(models.StreamChunk{
+		AgentName:    "Browser Use",
+		AgentResults: map[string]interface{}{"session_url": sessionUrl, "session_id": sessionId},
+		Message:      "Browser session ready!",
+		Status:       "INPROGRESS",
+	})
+
+	// 2. Create task
+	sw.Send(models.StreamChunk{
+		AgentName: "Browser Use",
+		Message:   "Sending task to browser agent...",
+		Status:    "INPROGRESS",
+	})
+
+	createTaskResponse, err := sub_agents.BrowserUseCreateTask(task, sessionId, apiKey)
+	if err != nil {
+		sw.Send(models.StreamChunk{AgentName: "Browser Use", Message: fmt.Sprintf("Task creation failed: %v", err), Status: "COMPLETED"})
+		return nil, err
+	}
+
+	taskID := createTaskResponse["session_id"].(string)
+
+	sw.Send(models.StreamChunk{
+		AgentName:    "Browser Use",
+		AgentResults: map[string]interface{}{"task_id": taskID},
+		Message:      "Task submitted, browser is working...",
+		Status:       "INPROGRESS",
+	})
+
+	// 3. Poll for status
+	finalResponse := make(map[string]interface{})
+	finalResponse["session_id"] = taskID
+	finalResponse["session_url"] = sessionUrl
+
+	var finalStatusResponse map[string]interface{}
+	var steps interface{}
+	isCreated := false
+	lastStepCount := 0
+
+	for i := 0; i < 100; i++ {
+		time.Sleep(2 * time.Second)
+
+		if !isCreated {
+			statusResp, err := sub_agents.BrowserUseGetTaskStatus(taskID, apiKey)
+			if err != nil {
+				sw.Send(models.StreamChunk{AgentName: "Browser Use", Message: fmt.Sprintf("Status check failed: %v", err), Status: "COMPLETED"})
+				return nil, err
+			}
+
+			status := statusResp["status"].(string)
+			if status == "created" || status == "started" {
+				isCreated = true
+				sw.Send(models.StreamChunk{
+					AgentName: "Browser Use",
+					Message:   "Browser agent is navigating...",
+					Status:    "INPROGRESS",
+				})
+			}
+			continue
+		}
+
+		getTaskResponse, err := sub_agents.BrowserUseGetTask(taskID, apiKey)
+		if err != nil {
+			sw.Send(models.StreamChunk{AgentName: "Browser Use", Message: fmt.Sprintf("Task fetch failed: %v", err), Status: "COMPLETED"})
+			return nil, err
+		}
+
+		// Stream new steps as they arrive
+		// steps may be []map[string]interface{} or []interface{} depending on how Go stores them
+		var taskSteps []map[string]interface{}
+		if typed, ok := getTaskResponse["steps"].([]map[string]interface{}); ok {
+			taskSteps = typed
+		} else if raw, ok := getTaskResponse["steps"].([]interface{}); ok {
+			for _, item := range raw {
+				if m, ok := item.(map[string]interface{}); ok {
+					taskSteps = append(taskSteps, m)
+				}
+			}
+		}
+
+		if len(taskSteps) > lastStepCount {
+			for j := lastStepCount; j < len(taskSteps); j++ {
+				step := taskSteps[j]
+				stepNum := step["number"]
+
+				// Build a human-readable message from actions
+				var actionDescs []string
+				if actions, ok := step["actions"].([]interface{}); ok {
+					for _, a := range actions {
+						if actionStr, ok := a.(string); ok {
+							actionDescs = append(actionDescs, parseActionString(actionStr))
+						}
+					}
+				}
+
+				var stepMsg string
+				if evalGoal, ok := step["evaluation_previous_goal"].(string); ok && evalGoal != "" {
+					stepMsg = fmt.Sprintf("Step %v: %s", stepNum, evalGoal)
+				} else if len(actionDescs) > 0 {
+					stepMsg = fmt.Sprintf("Step %v: %s", stepNum, strings.Join(actionDescs, ", "))
+				} else {
+					stepMsg = fmt.Sprintf("Step %v", stepNum)
+				}
+
+				sw.Send(models.StreamChunk{
+					AgentName:    "Browser Use",
+					AgentResults: step,
+					Message:      stepMsg,
+					Status:       "INPROGRESS",
+				})
+			}
+			lastStepCount = len(taskSteps)
+		}
+
+		status := getTaskResponse["status"].(string)
+		if status == "completed" || status == "stopped" || status == "finished" {
+			steps = getTaskResponse["steps"]
+			break
+		}
+	}
+
+	// Final status
+	if finalStatusResponse == nil {
+		statusResp, err := sub_agents.BrowserUseGetTaskStatus(taskID, apiKey)
+		if err != nil {
+			sw.Send(models.StreamChunk{AgentName: "Browser Use", Message: fmt.Sprintf("Final status check failed: %v", err), Status: "COMPLETED"})
+			return nil, err
+		}
+		finalStatusResponse = statusResp
+	}
+
+	if steps != nil {
+		finalResponse["steps"] = steps
+	}
+
+	if finalStatusResponse != nil {
+		finalResponse["status"] = finalStatusResponse["status"]
+		finalResponse["output"] = finalStatusResponse["output"]
+		finalResponse["is_success"] = finalStatusResponse["is_success"]
+	}
+
+	// Final COMPLETED chunk
+	outputMsg := "Browser task completed."
+	if out, ok := finalStatusResponse["output"].(string); ok && out != "" {
+		outputMsg = out
+	}
+
+	sw.Send(models.StreamChunk{
+		AgentName:    "Browser Use",
+		AgentResults: finalResponse,
+		Message:      outputMsg,
+		Status:       "COMPLETED",
+	})
 
 	return finalResponse, nil
 }

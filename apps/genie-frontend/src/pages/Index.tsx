@@ -32,6 +32,8 @@ const Index = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [streamingStatus, setStreamingStatus] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [browserSessionUrl, setBrowserSessionUrl] = useState<string | null>(null);
+  const [browserTaskId, setBrowserTaskId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Array<{
     _id: number;
     conversation_id: string;
@@ -186,6 +188,11 @@ const Index = () => {
   };
 
   const sendApiRequest = async (userMessage: string, files?: FileAttachment[], optionalAgent?: string) => {
+    // Branch: browser_use has its own streaming endpoint and flow
+    if (optionalAgent === "BROWSER_USE") {
+      return sendBrowserUseRequest(userMessage, files);
+    }
+
     setIsTyping(true);
     setStreamingStatus("");
 
@@ -226,9 +233,8 @@ const Index = () => {
                 return {
                   ...m,
                   content: finalMessage,
-                  // Keep streaming=true while final message is typing out
                   isStreaming: finalMessage ? !typingDone : true,
-                  streamingAgents: finalMessage ? undefined : [...liveAgents],
+                  streamingAgents: liveAgents.length > 0 ? [...liveAgents] : undefined,
                   agentResults: collectedAgentResults.length > 0 ? [...collectedAgentResults] : undefined,
                 };
               }),
@@ -250,17 +256,14 @@ const Index = () => {
           const agentName = chunk.agent_name;
           const isOrchestrator = agentName === "orchestrator";
 
-          // Update streaming status for the typing indicator
           if (chunk.status !== "COMPLETED") {
             setStreamingStatus(chunk.message || `${agentName} running...`);
           }
 
-          // Track per-agent live status (skip orchestrator meta-events)
           if (!isOrchestrator) {
             const existingIdx = liveAgents.findIndex((a) => a.agent_name === agentName);
             if (existingIdx >= 0) {
               const existing = liveAgents[existingIdx];
-              // Avoid duplicate consecutive messages
               if (chunk.message && existing.messages[existing.messages.length - 1] !== chunk.message) {
                 existing.messages.push(chunk.message);
               }
@@ -278,7 +281,6 @@ const Index = () => {
             }
           }
 
-          // Track final agent results (non-orchestrator agents that complete with results)
           if (!isOrchestrator && chunk.status === "COMPLETED" && chunk.agent_results) {
             const existingIdx = collectedAgentResults.findIndex((a) => a.agent_name === agentName);
             const agentResult: AgentExecutedResult = {
@@ -295,7 +297,6 @@ const Index = () => {
             }
           }
 
-          // Final orchestrator COMPLETED = final message
           if (isOrchestrator && chunk.status === "COMPLETED") {
             finalMessage = chunk.message;
             setStreamingStatus("");
@@ -305,12 +306,9 @@ const Index = () => {
         },
       });
 
-      // Finalize — keep isStreaming=true so ChatMessage plays the typing animation
       finalMessage = finalMessage || "I received your message but couldn't process it properly.";
       updateAssistantMsg();
 
-      // Estimate typing animation duration, then mark streaming done
-      // 10ms per word
       const wordCount = finalMessage.split(/\s+/).length;
       const estimatedTypingMs = wordCount * 10 + 300;
       setTimeout(() => {
@@ -352,7 +350,6 @@ const Index = () => {
     } catch (error) {
       console.error('API request failed:', error);
 
-      // If placeholder was already inserted, update it with the error
       setChats((prev) =>
         prev.map((c) => {
           if (c.id !== chatId) return c;
@@ -384,6 +381,210 @@ const Index = () => {
     } finally {
       setIsTyping(false);
       setStreamingStatus("");
+    }
+  };
+
+  const sendBrowserUseRequest = async (userMessage: string, files?: FileAttachment[]) => {
+    setIsTyping(true);
+    setStreamingStatus("");
+
+    const assistantMsgId = `assistant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const chatId = currentChatId;
+
+    try {
+      const chat = chats.find((c) => c.id === chatId);
+      if (!chat) throw new Error("Chat not found");
+      try { localStorage.setItem('last_conversation_id', chat.conversationId); } catch {}
+
+      const placeholderMsg: Message = {
+        id: assistantMsgId,
+        role: "assistant",
+        content: "",
+        isStreaming: true,
+        isBrowserUse: true,
+        streamingAgents: [],
+        createdAtMs: Date.now(),
+      };
+      setChats((prev) =>
+        prev.map((c) => (c.id === chatId ? { ...c, messages: [...c.messages, placeholderMsg] } : c))
+      );
+
+      let finalMessage = "";
+      const liveAgents: StreamingAgent[] = [];
+
+      const updateAssistantMsg = (opts?: { typingDone?: boolean }) => {
+        const typingDone = opts?.typingDone ?? false;
+        setChats((prev) =>
+          prev.map((c) => {
+            if (c.id !== chatId) return c;
+            return {
+              ...c,
+              messages: c.messages.map((m) => {
+                if (m.id !== assistantMsgId) return m;
+                return {
+                  ...m,
+                  content: finalMessage,
+                  isStreaming: finalMessage ? !typingDone : true,
+                  isBrowserUse: true,
+                  streamingAgents: liveAgents.length > 0 ? [...liveAgents] : undefined,
+                };
+              }),
+            };
+          })
+        );
+      };
+
+      await apiStreamRequest({
+        url: "/chats/execute/browser-use",
+        isAuth: true,
+        payload: {
+          message: userMessage,
+          conversation_id: chat.conversationId,
+          files: files || [],
+        },
+        onChunk: (chunk: StreamChunk) => {
+          if (chunk.status !== "COMPLETED") {
+            setStreamingStatus(chunk.message || "Browser working...");
+          }
+
+          // Check for session_url in agent_results — open iframe
+          if (chunk.agent_results && typeof chunk.agent_results === "object") {
+            const results = chunk.agent_results as Record<string, any>;
+            if (results.session_url && typeof results.session_url === "string") {
+              setBrowserSessionUrl(results.session_url);
+              setIsSidebarOpen(false);
+            }
+            if (results.task_id && typeof results.task_id === "string") {
+              setBrowserTaskId(results.task_id);
+            }
+          }
+
+          // Track live agent steps
+          const agentName = chunk.agent_name;
+          const existingIdx = liveAgents.findIndex((a) => a.agent_name === agentName);
+          if (existingIdx >= 0) {
+            const existing = liveAgents[existingIdx];
+            if (chunk.message && existing.messages[existing.messages.length - 1] !== chunk.message) {
+              existing.messages.push(chunk.message);
+            }
+            existing.status = chunk.status as StreamingAgent["status"];
+            existing.message = chunk.message;
+            existing.agent_results = chunk.agent_results ?? existing.agent_results;
+          } else {
+            liveAgents.push({
+              agent_name: agentName,
+              status: chunk.status as StreamingAgent["status"],
+              message: chunk.message,
+              messages: chunk.message ? [chunk.message] : [],
+              agent_results: chunk.agent_results ?? undefined,
+            });
+          }
+
+          // Final COMPLETED
+          if (chunk.status === "COMPLETED") {
+            finalMessage = chunk.message;
+            setStreamingStatus("");
+          }
+
+          updateAssistantMsg();
+        },
+      });
+
+      finalMessage = finalMessage || "Browser task completed.";
+      updateAssistantMsg();
+
+      const wordCount = finalMessage.split(/\s+/).length;
+      const estimatedTypingMs = wordCount * 10 + 300;
+      setTimeout(() => {
+        updateAssistantMsg({ typingDone: true });
+      }, estimatedTypingMs);
+
+      // Update conversations
+      setConversations((prev) => {
+        const ch = chats.find((c) => c.id === chatId);
+        if (!ch) return prev;
+        const exists = prev.some((co) => co.conversation_id === ch.conversationId);
+        if (exists) return prev;
+        const nowIso = new Date().toISOString();
+        return [
+          ...prev,
+          {
+            _id: Date.now(),
+            id: Date.now(),
+            conversation_id: ch.conversationId,
+            conversation_name: 'Untitled Conversation',
+            created_at: nowIso,
+            updated_at: nowIso,
+            user_id: 0,
+          },
+        ];
+      });
+
+      if (conversationId === 'new') {
+        try { localStorage.setItem('last_conversation_id', chat.conversationId); } catch {}
+        navigate(`/chat/${chat.conversationId}`, { replace: true });
+        try {
+          const resp = await apiRequest<any>({
+            url: "/chat/get-conversations",
+            method: "GET",
+            isAuth: true,
+          });
+          setConversations(unwrapData(resp) ?? []);
+        } catch {}
+      }
+    } catch (error) {
+      console.error('Browser use request failed:', error);
+      setChats((prev) =>
+        prev.map((c) => {
+          if (c.id !== chatId) return c;
+          const hasPlaceholder = c.messages.some((m) => m.id === assistantMsgId);
+          if (hasPlaceholder) {
+            return {
+              ...c,
+              messages: c.messages.map((m) =>
+                m.id === assistantMsgId
+                  ? { ...m, content: "Browser task failed. Please try again.", isStreaming: false, isBrowserUse: true }
+                  : m
+              ),
+            };
+          }
+          return {
+            ...c,
+            messages: [
+              ...c.messages,
+              {
+                id: assistantMsgId,
+                role: "assistant" as const,
+                content: "Browser task failed. Please try again.",
+                isStreaming: false,
+                isBrowserUse: true,
+              },
+            ],
+          };
+        })
+      );
+    } finally {
+      setIsTyping(false);
+      setStreamingStatus("");
+    }
+  };
+
+  const handleCloseBrowserUse = async () => {
+    const taskId = browserTaskId;
+    const convId = currentChat?.conversationId || "";
+    setBrowserSessionUrl(null);
+    setBrowserTaskId(null);
+    if (taskId) {
+      try {
+        await apiRequest({
+          url: "/chats/execute/browser-use-cancel",
+          method: "POST",
+          isAuth: true,
+          payload: { task_id: taskId, conversation_id: convId, message: "Browser task cancelled by user." },
+        });
+      } catch (e) {
+        console.error("Failed to cancel browser use task:", e);
+      }
     }
   };
 
@@ -489,6 +690,36 @@ const Index = () => {
           <AIPodsPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : location.pathname === "/ai/video" ? (
           <AIVideoPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
+        ) : browserSessionUrl ? (
+          <div className="flex h-full w-full">
+            <div className="w-1/3 min-w-0 h-full">
+              <ChatInterface
+                messages={messages}
+                isTyping={isTyping}
+                streamingStatus={streamingStatus}
+                isSidebarOpen={isSidebarOpen}
+                onToggleSidebar={toggleSidebar}
+                onNewChat={handleNewChat}
+                onSendMessage={handleSendMessage}
+              />
+            </div>
+            <div className="w-2/3 min-w-0 h-full relative border-l border-border bg-background">
+              <button
+                onClick={handleCloseBrowserUse}
+                className="absolute top-3 left-3 z-10 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                title="Close browser view"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+              <iframe
+                src={browserSessionUrl}
+                className="w-full h-full border-0"
+                title="Browser Use Session"
+                allow="clipboard-read; clipboard-write"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+              />
+            </div>
+          </div>
         ) : (
           <ChatInterface
             messages={messages}
