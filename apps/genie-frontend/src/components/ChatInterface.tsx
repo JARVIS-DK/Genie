@@ -125,11 +125,11 @@ export const ChatInterface = ({
             {isSidebarOpen ? (
               <Bot className="h-7 w-7 text-primary" />
             ) : (
-              <img src="/logo.png" alt="GenIE" className="h-7 w-7 object-contain" />
+              <img src="/logo.png" alt="OpsMatrix" className="h-7 w-7 object-contain" />
             )}
           </div>
           <h1 className="text-xl font-bold text-white">
-            GenIE Super Agent
+            OpsMatrix Super Agent
           </h1>
         </div>
       </header>
@@ -175,10 +175,10 @@ export const ChatInterface = ({
                   <div className="flex flex-col items-center justify-center h-[calc(100vh-220px)] text-center py-8">
                     <div className="relative mb-6">
                       <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center backdrop-blur-sm shadow-[0_10px_40px_rgba(0,0,0,0.3)]">
-                        <img src="/logo.png" alt="GenIE" className="h-12 w-12 object-contain" />
+                        <img src="/logo.png" alt="OpsMatrix" className="h-12 w-12 object-contain" />
                       </div>
                     </div>
-                    <h2 className="text-3xl font-bold mb-2 text-foreground">GenIE Super Agent</h2>
+                    <h2 className="text-3xl font-bold mb-2 text-foreground">OpsMatrix Super Agent</h2>
                     <p className="text-muted-foreground max-w-xl text-sm mb-6">
                       Ask anything, create anything
                     </p>

@@ -94,7 +94,7 @@ interface ApiResponse {
 }
 
 const API_BASE_URL = 'http://74.225.222.68:3001/api/v1/vanij/man_playground/hucsfklguqbv';
-const FILE_UPLOAD_URL = 'https://vanijapp.GenIE.ai/api/v1/vanij/gateway/file_manager/internal/upload';
+const FILE_UPLOAD_URL = 'https://vanijapp.OpsMatrix.ai/api/v1/vanij/gateway/file_manager/internal/upload';
 const VANIJ_TOKEN = 'kBCdgWQRFJQfcrjfVbYKtGofCiCAGpfYmQWiIwWMrlYuGKUocYXLQFPFzCdiRGWHbMqbsZeqqOXdXqRWZkbcRmFgHThyVvTlydVbuvRkyVfoiWUxIuhsdYbYEEcifcPf';
 
 export class ApiService {

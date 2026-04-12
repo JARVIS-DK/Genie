@@ -14,7 +14,7 @@ type Agent = {
 const agents: Agent[] = [
   {
     id: 7320,
-    flow_name: "GenIE Super Agent",
+    flow_name: "OpsMatrix Super Agent",
     flow_description:
       "Diagnoses business problems and delivers structured, actionable strategies. Requires validated data from database agents (e.g., PostgreSQL, MongoDB) and user inputs before proposing solutions. Coordinates specialized agents and only uses research when internal data is insufficient.",
     flow_type: "AGENT",
@@ -25,7 +25,7 @@ const agents: Agent[] = [
     id: 7304,
     flow_name: "Postgres Database Agent",
     flow_description:
-      "Provides sales order details from PostgreSQL. Always invoked; the GenIE Super Agent depends on it for authoritative internal data.",
+      "Provides sales order details from PostgreSQL. Always invoked; the OpsMatrix Super Agent depends on it for authoritative internal data.",
     flow_type: "AGENT",
     project_id: 5229,
     call_type: "api",
@@ -35,7 +35,7 @@ const agents: Agent[] = [
     id: 7357,
     flow_name: "MongoDB Database Agent",
     flow_description:
-      "Provides sales details from MongoDB. Always invoked; the GenIE Super Agent depends on it for operational insights.",
+      "Provides sales details from MongoDB. Always invoked; the OpsMatrix Super Agent depends on it for operational insights.",
     flow_type: "AGENT",
     project_id: 5229,
     call_type: "api",
@@ -83,10 +83,10 @@ export default function AvailableAgents({ isSidebarOpen, onToggleSidebar }: Avai
             {isSidebarOpen ? (
               <Bot className="h-7 w-7 text-primary" />
             ) : (
-              <img src="/logo.png" alt="GenIE" className="h-7 w-7 object-contain" />
+              <img src="/logo.png" alt="OpsMatrix" className="h-7 w-7 object-contain" />
             )}
           </div>
-          <h1 className="text-xl font-bold text-white">GenIE Super Agent</h1>
+          <h1 className="text-xl font-bold text-white">OpsMatrix Super Agent</h1>
         </div>
       </header>
 

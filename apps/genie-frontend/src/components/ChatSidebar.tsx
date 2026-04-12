@@ -48,8 +48,8 @@ export const ChatSidebar = ({
     )}>
         {/* Brand Header */}
         <div className="px-4 pt-5 pb-7 flex items-center gap-2">
-          <img src="/logo.png" alt="GenIE" className="h-7 w-7 rounded-md object-contain" />
-          <div className="text-xl font-semibold text-foreground">GenIE</div>
+          <img src="/logo.png" alt="OpsMatrix" className="h-7 w-7 rounded-md object-contain" />
+          <div className="text-xl font-semibold text-foreground">OpsMatrix</div>
         </div>
 
         {/* New Chat Button */}
@@ -190,7 +190,7 @@ export const ChatSidebar = ({
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium truncate text-foreground">{user?.first_name ?? 'User'}</div>
-              <div className="text-xs text-muted-foreground truncate">GenIE Super Agent</div>
+              <div className="text-xs text-muted-foreground truncate">OpsMatrix Super Agent</div>
             </div>
           </div>
           <Button

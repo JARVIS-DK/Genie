@@ -83,11 +83,11 @@ const Login = () => {
       <div className="relative hidden md:block">
         <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_10%_10%,rgba(59,130,246,0.25),transparent_60%),radial-gradient(60%_60%_at_90%_20%,rgba(244,114,182,0.25),transparent_60%),radial-gradient(60%_60%_at_50%_90%,rgba(34,197,94,0.25),transparent_60%)]" />
         <div className="relative h-full flex flex-col justify-between p-10">
-          <img src="/logo.png" alt="GenIE" className="h-10 w-10 object-contain" />
+          <img src="/logo.png" alt="OpsMatrix" className="h-10 w-10 object-contain" />
           <div className="text-left max-w-xl">
             <div className="text-[11px] tracking-widest text-foreground/70 font-medium mb-3">TRUSTED BY TEAMS</div>
             <blockquote className="text-2xl leading-relaxed text-foreground/90"> 
-              “GenIE
+              “OpsMatrix
 The art of orchestrating intelligence.
 Autonomous agents working as one.
 From complexity to clarity.
@@ -95,7 +95,7 @@ From ideas to impact..”
             </blockquote>
             <div className="mt-6 text-sm">
               {/* <div className="font-semibold text-foreground">Shayak Mazumder</div>
-              <div className="text-muted-foreground">Founder, GenIE</div> */}
+              <div className="text-muted-foreground">Founder, OpsMatrix</div> */}
             </div>
           </div>
         </div>
@@ -105,8 +105,8 @@ From ideas to impact..”
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-md border border-white/10 rounded-xl bg-background/60 backdrop-blur-sm p-6 shadow-lg">
           <div className="flex flex-col items-center mb-6">
-            <img src="/logo.png" alt="GenIE" className="h-10 w-10 mb-2" />
-            <h1 className="text-2xl font-semibold text-foreground">Welcome to GenIE</h1>
+            <img src="/logo.png" alt="OpsMatrix" className="h-10 w-10 mb-2" />
+            <h1 className="text-2xl font-semibold text-foreground">Welcome to OpsMatrix</h1>
             <p className="text-sm text-muted-foreground mt-1">Enter your email to sign in to your account</p>
           </div>
 

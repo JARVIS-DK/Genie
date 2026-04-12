@@ -128,7 +128,7 @@ const AIImage: React.FC<PageProps> = ({ isSidebarOpen, onToggleSidebar }) => {
     try {
       setIsGenerating(true);
       const resp = await apiRequest<any>({
-        url: '/chats/execute/generate-image',
+        url: '/chat/execute/generate-image',
         method: 'POST',
         isAuth: true,
         payload: {
@@ -169,10 +169,10 @@ const AIImage: React.FC<PageProps> = ({ isSidebarOpen, onToggleSidebar }) => {
               {isSidebarOpen ? (
                 <Bot className="h-7 w-7 text-primary" />
               ) : (
-                <img src="/logo.png" alt="GenIE" className="h-7 w-7 object-contain" />
+                <img src="/logo.png" alt="OpsMatrix" className="h-7 w-7 object-contain" />
               )}
             </div>
-            <h1 className="text-xl font-bold text-white">GenIE Super Agent</h1>
+            <h1 className="text-xl font-bold text-white">OpsMatrix Super Agent</h1>
           </div>
         </header>
 
@@ -232,10 +232,10 @@ const AIImage: React.FC<PageProps> = ({ isSidebarOpen, onToggleSidebar }) => {
             {isSidebarOpen ? (
               <Bot className="h-7 w-7 text-primary" />
             ) : (
-              <img src="/logo.png" alt="GenIE" className="h-7 w-7 object-contain" />
+              <img src="/logo.png" alt="OpsMatrix" className="h-7 w-7 object-contain" />
             )}
           </div>
-          <h1 className="text-xl font-bold text-white">GenIE Super Agent</h1>
+          <h1 className="text-xl font-bold text-white">OpsMatrix Super Agent</h1>
         </div>
       </header>
 

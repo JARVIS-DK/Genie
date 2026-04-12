@@ -27,11 +27,11 @@ export default function SettingsPage({ isSidebarOpen, onToggleSidebar }: Setting
             {isSidebarOpen ? (
               <Bot className="h-7 w-7 text-primary" />
             ) : (
-              <img src="/logo.png" alt="GenIE" className="h-7 w-7 object-contain" />
+              <img src="/logo.png" alt="OpsMatrix" className="h-7 w-7 object-contain" />
             )}
           </div>
           <h1 className="text-xl font-bold text-white">
-            GenIE Super Agent
+            OpsMatrix Super Agent
           </h1>
         </div>
       </header>

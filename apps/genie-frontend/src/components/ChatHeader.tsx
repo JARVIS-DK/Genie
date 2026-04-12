@@ -99,7 +99,7 @@ export const ChatHeader = ({ onToggleSidebar, sidebarOpen, onCreateNewChat }: Ch
             </div>
             
             <div className="flex-1">
-              <h1 className="text-xl font-semibold text-foreground">GenIE Super Agent</h1>
+              <h1 className="text-xl font-semibold text-foreground">OpsMatrix Super Agent</h1>
               <p className="text-sm text-muted-foreground">Your intelligent business advisor</p>
             </div>
           </div>

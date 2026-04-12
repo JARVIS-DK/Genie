@@ -8,7 +8,7 @@ interface PageProps {
 
 export default function AISlidesPage({ isSidebarOpen, onToggleSidebar }: PageProps) {
   // Replace this with the static URL you want to display in fullscreen
-  const IFRAME_URL = 'https://www.openstreetmap.org/export/embed.html?bbox=-0.004017949104309083%2C51.47612752641776%2C0.00030577182769775396%2C51.478569861898606&amp;layer=mapnik';
+  const IFRAME_URL = 'http://35.207.245.67:5000/dashboard';
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden">
@@ -18,10 +18,10 @@ export default function AISlidesPage({ isSidebarOpen, onToggleSidebar }: PagePro
             {isSidebarOpen ? (
               <Bot className="h-7 w-7 text-primary" />
             ) : (
-              <img src="/logo.png" alt="GenIE" className="h-7 w-7 object-contain" />
+              <img src="/logo.png" alt="OpsMatrix" className="h-7 w-7 object-contain" />
             )}
           </div>
-          <h1 className="text-xl font-bold text-white">GenIE Super Agent</h1>
+          <h1 className="text-xl font-bold text-white">OpsMatrix Super Agent</h1>
         </div>
       </header>
 

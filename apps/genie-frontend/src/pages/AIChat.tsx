@@ -15,10 +15,10 @@ export default function AIChatDemoPage({ isSidebarOpen, onToggleSidebar }: PageP
             {isSidebarOpen ? (
               <Bot className="h-7 w-7 text-primary" />
             ) : (
-              <img src="/logo.png" alt="GenIE" className="h-7 w-7 object-contain" />
+              <img src="/logo.png" alt="OpsMatrix" className="h-7 w-7 object-contain" />
             )}
           </div>
-          <h1 className="text-xl font-bold text-white">GenIE Super Agent</h1>
+          <h1 className="text-xl font-bold text-white">OpsMatrix Super Agent</h1>
         </div>
       </header>
 
