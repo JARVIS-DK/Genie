@@ -137,9 +137,10 @@ func GoogleAudioGeneration(data GoogleAudioGenerationRequest, db shared.MongoRep
 
 	randomString := shared.GenerateRandomString(10)
 
-	projectID := "project-9a5b394d-e704-434b-a81"
-	location := "global"
-	gcsURI := fmt.Sprintf("gs://genie-blob-storage/generated_audios/%s.wav", randomString)
+	projectID := env.GlobalEnv["GOOGLE_CLOUD_PROJECT_ID"]
+	location := env.GlobalEnv["GOOGLE_CLOUD_LOCATION"]
+	bucketName := env.GlobalEnv["GOOGLE_CLOUD_STORAGE_BUCKET_NAME"]
+	gcsURI := fmt.Sprintf("gs://%s/generated_audios/%s.wav", bucketName, randomString)
 
 	fmt.Println("Enhanced Query: ", enhancedQuery)
 
@@ -181,7 +182,7 @@ func GoogleAudioGeneration(data GoogleAudioGenerationRequest, db shared.MongoRep
 		}, err
 	}
 
-	publicURL := fmt.Sprintf("https://storage.googleapis.com/genie-blob-storage/generated_audios/%s.wav", randomString)
+	publicURL := fmt.Sprintf("https://storage.googleapis.com/%s/generated_audios/%s.wav", bucketName, randomString)
 
 	collectionName := model.CollectionName["AUDIO_GENERATION_HISTORY"]
 	createPayload := map[string]interface{}{

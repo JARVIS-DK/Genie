@@ -35,7 +35,7 @@ func GenerateTitleAndEnhancedQuery(query string, agentName string, apiKey string
 		prompt = ""
 	}
 
-	geminiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%v:generateContent", env.GlobalEnv["GOOGLE_GEMINI_CHAT_MODEL"].(string))
+	geminiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%v:generateContent", env.GlobalEnv["GOOGLE_GEMINI_AUDIO_MODEL"].(string))
 
 	geminiPayload := map[string]interface{}{
 		"system_instruction": map[string]interface{}{
