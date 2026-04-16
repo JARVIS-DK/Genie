@@ -16,7 +16,7 @@ type GeminiRequest struct {
 	Prompt       string                   `json:"prompt"`
 	Model        string                   `json:"model"`
 	ApiKey       string                   `json:"api_key"`
-	ChatHistory  map[string]interface{}   `json:"chat_history"`
+	ChatHistory  []map[string]interface{} `json:"chat_history"` // prior conversation turns in Gemini contents format
 	ToolCalls    []map[string]interface{} `json:"tool_calls"`
 	ToolCallMode string                   `json:"tool_call_mode"` // "ANY", "AUTO", or "NONE". Defaults to "ANY".
 }
@@ -60,16 +60,19 @@ func Gemini(data GeminiRequest, db shared.MongoRepositoryFunctions, metaData sha
 		})
 	}
 
+	// Build contents: prepend chat history turns then append the current user message
+	contents := make([]map[string]interface{}, 0, len(data.ChatHistory)+1)
+	contents = append(contents, data.ChatHistory...)
+	contents = append(contents, map[string]interface{}{
+		"role":  "user",
+		"parts": []map[string]interface{}{{"text": data.Query}},
+	})
+
 	geminiPayload := map[string]interface{}{
 		"system_instruction": map[string]interface{}{
 			"parts": []map[string]interface{}{{"text": data.Prompt}},
 		},
-		"contents": []map[string]interface{}{
-			{
-				"role":  "user",
-				"parts": []map[string]interface{}{{"text": data.Query}},
-			},
-		},
+		"contents": contents,
 	}
 
 	if len(functionDeclarations) > 0 {
@@ -97,7 +100,7 @@ func Gemini(data GeminiRequest, db shared.MongoRepositoryFunctions, metaData sha
 		Method:  "POST",
 		Headers: headers,
 		Body:    geminiPayload,
-		Timeout: 60,
+		Timeout: 600,
 	}
 
 	apiResp, err := shared.APIRequestComponentProcessor(apiRequest)

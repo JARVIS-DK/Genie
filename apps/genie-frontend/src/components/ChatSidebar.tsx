@@ -78,8 +78,8 @@ export const ChatSidebar = ({
           <SidebarNavItem
             icon={<Music className="h-4 w-4" />}
             label="AI Pods"
-            onClick={() => navigate('/ai/music')}
-            active={location.pathname === '/ai/music'}
+            onClick={() => navigate('/ai/podcasts')}
+            active={location.pathname === '/ai/podcasts'}
           />
           <SidebarNavItem
             icon={<Image className="h-4 w-4" />}

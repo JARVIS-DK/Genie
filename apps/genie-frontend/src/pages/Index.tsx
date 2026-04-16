@@ -686,7 +686,7 @@ const Index = () => {
           <AIChatDemoPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : location.pathname === "/ai/developer" ? (
           <AIDeveloperPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
-        ) : location.pathname === "/ai/music" ? (
+        ) : location.pathname === "/ai/podcasts" ? (
           <AIPodsPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />
         ) : location.pathname === "/ai/video" ? (
           <AIVideoPage isSidebarOpen={isSidebarOpen} onToggleSidebar={toggleSidebar} />

@@ -8,12 +8,73 @@ import (
 	"encoding/json"
 	"fmt"
 	"libs/shared"
+	"libs/shared/db_connectors/model"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	env "apps/genie-backend/config"
 )
+
+// fetchRecentHistory retrieves the last `limit` chat messages for a conversation
+// and returns them formatted as Gemini content turns (role + parts).
+func fetchRecentHistory(db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData, conversationId string, limit int) []map[string]interface{} {
+	if conversationId == "" {
+		return nil
+	}
+
+	collectionName := model.CollectionName["CHAT_HISTORY"]
+	filterQuery := map[string]interface{}{
+		"user_id":         metaData.UserId,
+		"conversation_id": conversationId,
+	}
+
+	record, err := db.GetOne(env.GlobalEnv["MONGO_CREDENTIAL"], collectionName, filterQuery)
+	if err != nil || record == nil {
+		return nil
+	}
+
+	var doc map[string]interface{}
+	shared.JsonMarshaller(record, &doc)
+
+	historyRaw, ok := doc["history"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	// Flatten all daily message arrays into a single slice
+	var allMessages []models.ChatMessage
+	for _, dayRaw := range historyRaw {
+		var msgs []models.ChatMessage
+		shared.JsonMarshaller(dayRaw, &msgs)
+		allMessages = append(allMessages, msgs...)
+	}
+
+	// Sort chronologically
+	sort.Slice(allMessages, func(i, j int) bool {
+		return allMessages[i].CreatedAt.Before(allMessages[j].CreatedAt)
+	})
+
+	// Keep only the last `limit` messages
+	if len(allMessages) > limit {
+		allMessages = allMessages[len(allMessages)-limit:]
+	}
+
+	// Convert to Gemini contents format
+	contents := make([]map[string]interface{}, 0, len(allMessages))
+	for _, msg := range allMessages {
+		role := "user"
+		if msg.Role != "user" {
+			role = "model"
+		}
+		contents = append(contents, map[string]interface{}{
+			"role":  role,
+			"parts": []map[string]interface{}{{"text": msg.Message}},
+		})
+	}
+	return contents
+}
 
 func Orchestrator(data models.ExecuteRequestDto, db shared.MongoRepositoryFunctions, metaData shared.ApiMetaData) (models.ExecuteResponseDto, error) {
 
@@ -32,6 +93,9 @@ func Orchestrator(data models.ExecuteRequestDto, db shared.MongoRepositoryFuncti
 
 	shared.PrettyPrint("Orchestrator Start Query:", data.Message)
 
+	// Fetch last 10 messages for conversation context
+	chatHistory := fetchRecentHistory(db, metaData, data.ConversationId, 10)
+
 	apiKey, err := llm.GetApiKey("GENERAL_CHATBOT", db)
 	if err != nil {
 		return models.ExecuteResponseDto{
@@ -48,6 +112,7 @@ func Orchestrator(data models.ExecuteRequestDto, db shared.MongoRepositoryFuncti
 		ApiKey:       apiKey,
 		Model:        classifierModel,
 		ToolCallMode: "AUTO",
+		ChatHistory:  chatHistory,
 	}
 
 	classifierResp, classifierErr := llm.Gemini(classifierPayload, db, metaData)
@@ -176,6 +241,7 @@ func Orchestrator(data models.ExecuteRequestDto, db shared.MongoRepositoryFuncti
 		Query:  finalQuery,
 		Prompt: finalPrompt,
 		ApiKey: apiKey,
+		// ChatHistory: chatHistory,
 	}
 
 	finalResp, err := llm.Gemini(finalPayload, db, metaData)
@@ -310,6 +376,9 @@ func OrchestratorStream(data models.ExecuteRequestDto, db shared.MongoRepository
 		Status:    "STARTED",
 	})
 
+	// Fetch last 10 messages for conversation context
+	chatHistory := fetchRecentHistory(db, metaData, data.ConversationId, 10)
+
 	apiKey, err := llm.GetApiKey("GENERAL_CHATBOT", db)
 	if err != nil {
 		sw.Send(models.StreamChunk{AgentName: "orchestrator", Message: err.Error(), Status: "COMPLETED"})
@@ -324,6 +393,7 @@ func OrchestratorStream(data models.ExecuteRequestDto, db shared.MongoRepository
 		ApiKey:       apiKey,
 		Model:        classifierModel,
 		ToolCallMode: "AUTO",
+		ChatHistory:  chatHistory,
 	}
 
 	classifierResp, classifierErr := llm.Gemini(classifierPayload, db, metaData)
@@ -342,7 +412,7 @@ func OrchestratorStream(data models.ExecuteRequestDto, db shared.MongoRepository
 	// --- INPROGRESS: tool selection ---
 	sw.Send(models.StreamChunk{
 		AgentName: "orchestrator",
-		Message:   "Selecting tools...",
+		Message:   "Selecting Agents...",
 		Status:    "INPROGRESS",
 	})
 
@@ -366,6 +436,7 @@ func OrchestratorStream(data models.ExecuteRequestDto, db shared.MongoRepository
 			ApiKey:       orchestratorApiKey,
 			Model:        orchestratorModel,
 			ToolCallMode: "AUTO",
+			ChatHistory: chatHistory,
 		}
 
 		resp, err := llm.Gemini(geminiPayload, db, metaData)
@@ -471,6 +542,7 @@ func OrchestratorStream(data models.ExecuteRequestDto, db shared.MongoRepository
 		Query:  finalQuery,
 		Prompt: finalPrompt,
 		ApiKey: apiKey,
+		// ChatHistory: chatHistory,
 	}
 
 	finalResp, err := llm.Gemini(finalPayload, db, metaData)

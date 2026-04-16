@@ -194,8 +194,8 @@ export const ChatInterface = ({
                         {[
                           { label: "AI Slides", path: "/ai/slides", iconBg: "from-purple-500/20 to-purple-400/10", emoji: "📑" },
                           { label: "AI Image", path: "/ai/image", iconBg: "from-amber-500/20 to-amber-400/10", emoji: "🖼️" },
-                          { label: "AI Chat", path: "/ai/chat", iconBg: "from-sky-500/20 to-sky-400/10", emoji: "💬" },
-                          { label: "AI Developer", path: "/ai/developer", iconBg: "from-emerald-500/20 to-emerald-400/10", emoji: "🧑‍💻" },
+                          { label: "AI Video", path: "/ai/video", iconBg: "from-sky-500/20 to-sky-400/10", emoji: "🎬" },
+                          { label: "AI Podcasts", path: "/ai/podcasts", iconBg: "from-emerald-500/20 to-emerald-400/10", emoji: "🎙️" },
                         ].map((b) => (
                           <button
                             key={b.label}

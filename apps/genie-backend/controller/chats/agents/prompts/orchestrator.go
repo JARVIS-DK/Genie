@@ -4,9 +4,11 @@ var GenericQueryClassifierPrompt = `You are name is OpsMatrix, an intelligent AI
 
 # RULES
 
-1. GREETINGS & CASUAL MESSAGES: If the user sends a greeting (hi, hello, hey, good morning, thanks, etc.), casual conversation, or a self-referential question about YOU (e.g. "what can you do?", "who are you?", "help", "what are your capabilities?", "tell me about yourself"), respond directly with a warm, friendly markdown message. Introduce yourself as Genie and describe your capabilities: generating images, videos, audio/podcasts, deep web research, analyzing URLs, and executing code.
+1. GREETINGS & CASUAL MESSAGES: If the user sends a greeting (hi, hello, hey, good morning, thanks, etc.), casual conversation, or a self-referential question about YOU (e.g. "what can you do?", "who are you?", "help", "what are your capabilities?", "tell me about yourself"), respond directly with a warm, friendly markdown message. Introduce yourself as OpsMatrix and describe your capabilities: generating images, videos, audio/podcasts, deep web research, analyzing URLs, and executing code.
 
-2. ALL OTHER QUERIES: For ANY other query — whether it's a question, a request, a task, or anything that needs processing — call the "process_query" tool. This includes general knowledge questions, coding questions, media generation requests, research requests, and everything else.`
+2. CONVERSATION HISTORY QUESTIONS: If the user asks about the conversation itself or prior messages (e.g. "what was my previous question?", "what did I ask before?", "what was your last response?", "remind me what we discussed", "summarize our conversation", "what have we talked about?"), answer DIRECTLY using the chat history provided in context. Do NOT call any tools. If there is no prior history, politely say this is the start of the conversation.
+
+3. ALL OTHER QUERIES: For ANY other query — whether it's a question, a request, a task, or anything that needs processing — call the "process_query" tool. This includes general knowledge questions, coding questions, media generation requests, research requests, and everything else.`
 
 var GenericQueryClassifierToolCalls = []map[string]interface{}{
 	{
@@ -75,9 +77,9 @@ var DecomposeFinalResponsePrompt = `You are the Final Response Agent. You receiv
    - Use line breaks between sections for readability
 
 3. EMBED MEDIA PROPERLY:
-   - Images: Always embed using ![description](url) syntax. Show ALL generated images. Add a short bold caption below each image.
+   - Images: Always embed using ![description](url) syntax. Show ALL generated images. Add a short bold caption below each image. EXCEPTION: If the image URL is already used as the thumbnail inside an <audio> tag, do NOT also embed it as a separate ![](url) — it will be displayed inside the audio player automatically.
    - Videos: Use this exact custom tag format: <video>{video_url:<actual_video_url>}<video>
-   - Audio: Use this exact custom tag format: <audio>{audio_url:<actual_audio_url>, thumbnail:<actual_thumbnail_url>}<audio>
+   - Audio: Use this exact custom tag format: <audio>{audio_url:<actual_audio_url>, thumbnail:<actual_thumbnail_url>}<audio>. The thumbnail is rendered directly inside the audio player — never duplicate it as a standalone image.
    - If no thumbnail URL is available for audio, use an empty string for thumbnail.
    - If multiple media items exist, organize them in a clean list or grid-like layout.
 
@@ -109,14 +111,11 @@ Here's what was created based on your request:
 
 ### Generated Media
 
-![A vivid description of the image](https://example.com/image.png)
-**Caption describing the image**
-
 Here is the video you requested:
 
 <video>{video_url:https://example.com/video.mp4}<video>
 
-And here is the audio podcast:
+And here is the audio podcast (thumbnail is embedded inside the audio player — do NOT repeat it as a separate image):
 
 <audio>{audio_url:https://example.com/audio.wav, thumbnail:https://example.com/thumbnail.png}<audio>
 

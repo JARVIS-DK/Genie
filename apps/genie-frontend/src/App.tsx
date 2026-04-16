@@ -56,7 +56,7 @@ const App = () => (
                 }
               />
               <Route
-                path="/ai/music"
+                path="/ai/podcasts"
                 element={
                   <RequireAuth>
                     <Index />

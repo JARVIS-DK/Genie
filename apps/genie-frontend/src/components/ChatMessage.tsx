@@ -8,6 +8,37 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 
 import type { AgentExecutedResult, StreamingAgent } from "./ChatInterface";
 
+type MediaSegment =
+  | { type: "text"; value: string }
+  | { type: "video"; url: string }
+  | { type: "audio"; url: string; thumbnail?: string };
+
+// Splits content on custom media tokens:
+//   <video>{video_url:URL}<video>
+//   <audio>{audio_url:URL, thumbnail:URL}<audio>
+function parseMediaTokens(text: string): MediaSegment[] {
+  const parts: MediaSegment[] = [];
+  const regex = /<(video|audio)>\{((?:[^}])*)\}<(?:video|audio)>/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) parts.push({ type: "text", value: text.slice(last, match.index) });
+    const tag = match[1] as "video" | "audio";
+    const attrs = match[2];
+    if (tag === "video") {
+      const urlMatch = attrs.match(/video_url:(https?:[^\s,}]+)/);
+      if (urlMatch) parts.push({ type: "video", url: urlMatch[1].trim() });
+    } else {
+      const urlMatch = attrs.match(/audio_url:(https?:[^\s,}]+)/);
+      const thumbMatch = attrs.match(/thumbnail:(https?:[^\s,}]+)/);
+      if (urlMatch) parts.push({ type: "audio", url: urlMatch[1].trim(), thumbnail: thumbMatch?.[1].trim() });
+    }
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push({ type: "text", value: text.slice(last) });
+  return parts;
+}
+
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
@@ -225,67 +256,88 @@ export const ChatMessage = ({ role, content, isStreaming = false, files = [], cr
                     </p>
                   ) : (
                     <div className="prose prose-sm max-w-none break-words leading-relaxed">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                        h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
-                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-                        li: ({ children }) => <li className="text-sm">{children}</li>,
-                        code: ({ children, className }) => {
-                          const isInline = !className;
-                          return isInline ? (
-                            <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>
-                          ) : (
-                            <code className={className}>{children}</code>
-                          );
-                        },
-                        pre: ({ children }) => (
-                          <pre className="bg-muted p-3 rounded-lg overflow-x-auto text-xs font-mono mb-2">
-                            {children}
-                          </pre>
-                        ),
-                        blockquote: ({ children }) => (
-                          <blockquote className="border-l-4 border-primary/30 pl-3 italic text-muted-foreground mb-2">
-                            {children}
-                          </blockquote>
-                        ),
-                        table: ({ children }) => (
-                          <div className="overflow-x-auto mb-2">
-                            <table className="min-w-full border-collapse border border-border">
-                              {children}
-                            </table>
+                      {parseMediaTokens(displayedContent).map((seg, si) =>
+                        seg.type === "video" ? (
+                          <video
+                            key={si}
+                            src={seg.url}
+                            controls
+                            className="w-full rounded-lg mb-2 max-h-80"
+                          />
+                        ) : seg.type === "audio" ? (
+                          <div key={si} className="mb-2 rounded-xl overflow-hidden border border-border/50 bg-muted/30">
+                            {seg.thumbnail && (
+                              <img src={seg.thumbnail} alt="Audio thumbnail" className="w-full max-h-40 object-cover" />
+                            )}
+                            <div className="px-3 py-2">
+                              <audio controls src={seg.url} className="w-full h-10" />
+                            </div>
                           </div>
-                        ),
-                        th: ({ children }) => (
-                          <th className="border border-border px-2 py-1 bg-muted font-semibold text-left text-xs">
-                            {children}
-                          </th>
-                        ),
-                        td: ({ children }) => (
-                          <td className="border border-border px-2 py-1 text-xs">
-                            {children}
-                          </td>
-                        ),
-                        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                        em: ({ children }) => <em className="italic">{children}</em>,
-                        a: ({ children, href }) => (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
+                        ) : (
+                          <ReactMarkdown
+                            key={si}
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                            h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
+                            h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                            ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                            li: ({ children }) => <li className="text-sm">{children}</li>,
+                            code: ({ children, className }) => {
+                              const isInline = !className;
+                              return isInline ? (
+                                <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+                              ) : (
+                                <code className={className}>{children}</code>
+                              );
+                            },
+                            pre: ({ children }) => (
+                              <pre className="bg-muted p-3 rounded-lg overflow-x-auto text-xs font-mono mb-2">
+                                {children}
+                              </pre>
+                            ),
+                            blockquote: ({ children }) => (
+                              <blockquote className="border-l-4 border-primary/30 pl-3 italic text-muted-foreground mb-2">
+                                {children}
+                              </blockquote>
+                            ),
+                            table: ({ children }) => (
+                              <div className="overflow-x-auto mb-2">
+                                <table className="min-w-full border-collapse border border-border">
+                                  {children}
+                                </table>
+                              </div>
+                            ),
+                            th: ({ children }) => (
+                              <th className="border border-border px-2 py-1 bg-muted font-semibold text-left text-xs">
+                                {children}
+                              </th>
+                            ),
+                            td: ({ children }) => (
+                              <td className="border border-border px-2 py-1 text-xs">
+                                {children}
+                              </td>
+                            ),
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                            em: ({ children }) => <em className="italic">{children}</em>,
+                            a: ({ children, href }) => (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                {children}
+                              </a>
+                            ),
+                            }}
                           >
-                            {children}
-                          </a>
-                        ),
-                        }}
-                      >
-                        {displayedContent}
-                      </ReactMarkdown>
+                            {seg.value}
+                          </ReactMarkdown>
+                        )
+                      )}
                     </div>
                   )}
                 </div>
